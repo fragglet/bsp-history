@@ -1,9 +1,32 @@
-This is BSP version 2.3 dos extended, written by Colin Reed, Lee Killough
+This is BSP version 3.0 dos extended, written by Colin Reed, Lee Killough
 
 Please send all comments and/or questions about BSP to Lee Killough
-(killough@rsn.hp.com).
+(killough@classicgaming.com).
 
------------------------------------------------------------
+-------------------------------------------------------------------------------
+Changes in 3.0x:
+
+Lee Killough 9/98:
+
+Fixed many cases of slime lines by going back to using slightly slower BSP21x
+splitting algorithm.
+
+Removed approximate visplane overflow detection code, as being too inaccurate
+to be useful. If visplane overflows need to be detected, then modifying the
+Doom source code to display them exactly in real-time would be a better idea.
+The visplane counting code in BSP22x and BSP23x was never 100% accurate, but
+was about as close as I could make it based solely on empirical evidence.
+
+NOTE: this change does not remove the -vp option, which attempts to reduce
+the chances of visplane overflows by using a special node line heuristic, and
+which is the more useful of the visplane-related options. This change only
+removes the -vpwarn and -vpmark options, which attempted to detect where
+visplane overflows occurred, but which were too crude. Exact detection of
+visplane overflows is unnecessary to remove them, because techniques are
+available which reduce the probability of visplane overflows without having
+to know whether they actually occur.
+
+-------------------------------------------------------------------------------
 Changes in 2.3x:
 
 Lee Killough 2/98:
@@ -19,7 +42,7 @@ Possible future enhancement:
 
 >64K blockmap support (requires changes in Doom source code as well).
 
------------------------------------------------------------
+-------------------------------------------------------------------------------
 Changes in 2.2x:
 
 Lee Killough 10/97:
@@ -53,7 +76,7 @@ as DCK3.61, do not always set the length field in a level marker to 0, and
 EdMap requires that the offset field in a level marker be equal to the
 offset of the first resource.
 
------------------------------------------------------------
+-------------------------------------------------------------------------------
 Changes in 2.1x:
 
 Lee Killough 06/97

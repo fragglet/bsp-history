@@ -1,6 +1,6 @@
 /*- BSP.C -------------------------------------------------------------------*
 
- Node builder for DOOM levels (c) 1998 Colin Reed, version 2.3 (dos extended)
+ Node builder for DOOM levels (c) 1998 Colin Reed, version 3.0 (dos extended)
 
  Performance increased 200% over 1.2x
 
@@ -78,12 +78,19 @@ static short mapmaxx;
 static short mapminy;
 static short mapmaxy;
 
+static long psx,psy,pex,pey,pdx,pdy;
+static long lsx,lsy,lex,ley;
+static short node_x;
+static short node_y;
+static short node_dx;
+static short node_dy;
+
 static unsigned char pcnt;
 
 static struct Seg *PickNode_traditional(struct Seg *);
 static struct Seg *PickNode_visplane(struct Seg *);
 static struct Seg *(*PickNode)(struct Seg *)=PickNode_traditional;
-static int visplane,visplane_warning,mark_visplanes,threshold=128;
+static int visplane;
 static int noreject;
 
 static struct lumplist {
@@ -111,8 +118,7 @@ static void FindLimits(struct Seg *);
 static struct Seg *CreateSegs();
 
 static struct Node *CreateNode(struct Seg *);
-static int IsItConvex(const struct Seg *);
-static void DelSegs(struct Seg *);
+static int IsItConvex(struct Seg *);
 
 static void ReverseNodes(struct Node *);
 static long CreateBlockmap(void);
@@ -160,6 +166,35 @@ static void FindLimits(struct Seg *ts)
 	lmaxy = maxy;
 }
 
+/*--------------------------------------------------------------------------*/
+
+static __inline__ int SplitDist(struct Seg *ts)
+{
+	double t,dx,dy;
+
+	if(ts->flip==0)
+		{
+		dx = (double)(vertices[linedefs[ts->linedef].start].x)-(vertices[ts->start].x);
+		dy = (double)(vertices[linedefs[ts->linedef].start].y)-(vertices[ts->start].y);
+
+		if(dx == 0 && dy == 0) printf("Trouble in SplitDist %f,%f\n",dx,dy);
+		t = sqrt((dx*dx) + (dy*dy));
+		return (int)t;
+		}
+	else
+		{
+		dx = (double)(vertices[linedefs[ts->linedef].end].x)-(vertices[ts->start].x);
+		dy = (double)(vertices[linedefs[ts->linedef].end].y)-(vertices[ts->start].y);
+
+		if(dx == 0 && dy == 0) printf("Trouble in SplitDist %f,%f\n",dx,dy);
+		t = sqrt((dx*dx) + (dy*dy));
+		return (int)t;
+		}
+}
+
+/*--------------------------------------------------------------------------*/
+/* Find limits from a list of segs, does this by stepping through the segs*/
+/* and comparing the vertices at both ends.*/
 
 /*--------------------------------------------------------------------------*/
 #include "funcs.c"
@@ -664,9 +699,6 @@ void usage(void)
         "Options:\n\n"
         "  -factor <nnn>  Changes the cost assigned to SEG splits\n"
         "  -vp            Attempts to prevent visplane overflows\n"
-        "  -vpwarn        Warns about potential visplane overflows\n"
-        "  -vpmark        Marks visplane overflows with player starts\n"
-        "  -thold <nnn>   Threshold for visplane overflow (default 128)\n"
         "  -noreject      Does not clobber reject map\n"
        );
  exit(1);
@@ -680,13 +712,8 @@ static void parse_options(int argc, char *argv[])
    void *var;
    enum {NONE, STRING, INT} arg;
  } tab[]= { {"-vp", &visplane, NONE},
-            {"-vpwarn", &visplane_warning, NONE},
-            {"-warnvp", &visplane_warning, NONE},
             {"-noreject", &noreject, NONE},
-            {"-vpmark", &mark_visplanes, NONE},
-            {"-markvp", &mark_visplanes, NONE},
             {"-factor", &factor, INT},
-            {"-thold", &threshold, INT},
             {"-o", fnames+1, STRING},
           };
  int nf=0;
@@ -737,11 +764,23 @@ static void parse_options(int argc, char *argv[])
 
  testwad = fnames[0];                          /* Get input name*/
 
- if (!testwad || factor<0 || threshold<0)
+ if (!testwad || factor<0)
    usage();
 
  outwad = fnames[1] ? fnames[1] : "tmp.wad";   /* Get output name*/
 }
+
+/* Height of nodes */
+static unsigned height(const struct Node *tn)
+{
+ if (tn)
+  {
+   unsigned l = height(tn->nextl), r = height(tn->nextr);
+   return l>r ? l+1 : r+1;
+  }
+ return 1;
+}
+
 
 /*- Main Program -----------------------------------------------------------*/
 
@@ -752,7 +791,7 @@ int main(int argc,char *argv[])
 
  setbuf(stdout,NULL);
 
- puts("* Doom BSP node builder ver 2.3 (c) 1998 Colin Reed, Lee Killough *");
+ puts("* Doom BSP node builder ver 3.0 (c) 1998 Colin Reed, Lee Killough *");
 
  parse_options(argc,argv);
 
@@ -840,12 +879,6 @@ int main(int argc,char *argv[])
       puts("Completed blockmap building");
      }
 
-    if (visplane_warning || mark_visplanes)
-      warn_visplanes(nodelist);
-
-    if (mark_visplanes)
-      add_lump("THINGS", things, sizeof(struct Thing)*num_things);
-
     pnodes = GetMemory(sizeof(struct Pnode)*num_nodes);
     num_pnodes = 0;
     pnode_indx = 0;
@@ -855,7 +888,6 @@ int main(int argc,char *argv[])
     free(SectorHits);
 
    }  /* if (lump->islevel) */
-
 
  {
   long offs=12;

@@ -1,2 +1,1 @@
-	gcc -Wl,-s bsp.c -Wall -Winline -O2 -finline-functions -ffast-math -lm -lemu -o bsp.exe
-
+gcc bsp.c -Wall -O3 -finline-functions -ffast-math -m486 -lm -lemu -s -o bsp.exe

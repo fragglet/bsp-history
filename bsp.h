@@ -26,7 +26,7 @@
 static void ProgError( char *, ...);
 static void *GetMemory(size_t);
 static void *ResizeMemory(void *, size_t);
-static unsigned ComputeAngle(long,long);
+static unsigned ComputeAngle(int,int);
 
 #undef max
 #define max(a,b) (((a)>(b))?(a):(b))
