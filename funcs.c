@@ -1,7 +1,7 @@
 /*- FUNCS.C ----------------------------------------------------------------*/
 /*- terminate the program reporting an error -------------------------------*/
 
-void ProgError( char *errstr, ...)
+static void ProgError( char *errstr, ...)
 {
    va_list args;
 
@@ -15,7 +15,7 @@ void ProgError( char *errstr, ...)
 
 /*- allocate memory with error checking ------------------------------------*/
 
-void *GetMemory( size_t size)
+static __inline__ void *GetMemory( size_t size)
 {
    void *ret = malloc( size);
    if (!ret)
@@ -25,7 +25,7 @@ void *GetMemory( size_t size)
 
 /*- reallocate memory with error checking ----------------------------------*/
 
-void *ResizeMemory( void *old, size_t size)
+static __inline__ void *ResizeMemory( void *old, size_t size)
 {
    void *ret = realloc( old, size);
    if (!ret)

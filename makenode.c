@@ -2,62 +2,6 @@
  Recursively create nodes and return the pointers.
 *---------------------------------------------------------------------------*/
 
-struct Node *CreateNode(struct Seg *ts)
-{
-	struct Node *tn;
-	struct Seg *rights = NULL;
-	struct Seg *lefts = NULL;
-
-	tn = GetMemory( sizeof( struct Node));				/* Create a node*/
- 
-	DivideSegs(ts,&rights,&lefts);						/* Divide node in two*/
-
-	num_nodes++;
-
-	tn->x = node_x;											/* store node line info*/
-	tn->y = node_y;
-	tn->dx = node_dx;
-	tn->dy = node_dy;
-
-	FindLimits(lefts);										/* Find limits of vertices	*/
-
-	tn->maxy2 = lmaxy;
-	tn->miny2 = lminy;
-	tn->minx2 = lminx;
-	tn->maxx2 = lmaxx;
-
-	if(IsItConvex(lefts))	  								/* Check lefthand side*/
-		{
-		tn->nextl = CreateNode(lefts);					/* still segs remaining*/
-		tn->chleft = 0;
-		}
-	else
-		{
-		tn->nextl = NULL;
-		tn->chleft = CreateSSector(lefts) | 0x8000;
-		}
-
-	FindLimits(rights);										/* Find limits of vertices*/
-	
-	tn->maxy1 = lmaxy;
-	tn->miny1 = lminy;
-	tn->minx1 = lminx;
-	tn->maxx1 = lmaxx;
-
-	if(IsItConvex(rights))									/* Check righthand side*/
-		{
-		tn->nextr = CreateNode(rights);					/* still segs remaining*/
-		tn->chright = 0;
-		}
-	else
-		{
-		tn->nextr = NULL;
-		tn->chright =  CreateSSector(rights) | 0x8000;
-		}
-
-	return tn;
-}
-
 /*---------------------------------------------------------------------------*
  Split a list of segs (ts) into two using the method described at bottom of
  file, this was taken from OBJECTS.C in the DEU5beta source.
@@ -71,29 +15,30 @@ struct Node *CreateNode(struct Seg *ts)
  else put the segs into rights list.
 *---------------------------------------------------------------------------*/
 
-void DivideSegs(struct Seg *ts,struct Seg **rs,struct Seg **ls)
+static __inline__ void DivideSegs(struct Seg *ts,struct Seg **rs,struct Seg **ls)
 {
 	struct Seg *rights,*lefts;
 	struct Seg *tmps,*best,*news,*prev;
 	struct Seg *add_to_rs,*add_to_ls;
-  	struct Seg *new_best,*new_rs,*new_ls;
+  	struct Seg *new_best=NULL,*new_rs,*new_ls;
 	
 	struct Seg *strights,*stlefts;
-
+        int num_new=0;
+/*
 	int num_secs_r,num_secs_l,last_sec_r,last_sec_l;
-
 	int num,least_splits,least;
 	int fv,tv,num_new = 0;
 	int bangle,cangle,cangle2,cfv,ctv,dx,dy;
+*/
 	short int x,y,val;
 
 	FindLimits(ts);							/* Find limits of this set of Segs*/
-	
+
 	sp.halfsx = (lmaxx - lminx) / 2;		/* Find half width of Node*/
 	sp.halfsy = (lmaxy - lminy) / 2;
 	sp.halfx = lminx + sp.halfsx;			/* Find middle of Node*/
 	sp.halfy = lminy + sp.halfsy;
-	
+
 	best = PickNode(ts);						/* Pick best node to use.*/
 
 	if(best == NULL) ProgError("Couldn't pick nodeline!");
@@ -120,7 +65,7 @@ void DivideSegs(struct Seg *ts,struct Seg **rs,struct Seg **ls)
 	pey = vertices[best->end].y;
 	pdx = psx - pex;								/* Partition line DX,DY*/
 	pdy = psy - pey;
-	
+
 	for(tmps=ts;tmps;tmps=tmps->next)
 		{
 		progress();									/* Something for the user to look at.*/
@@ -137,13 +82,13 @@ void DivideSegs(struct Seg *ts,struct Seg **rs,struct Seg **ls)
 				{
 				ComputeIntersection(&x,&y);
 /*				printf("Splitting Linedef %d at %d,%d\n",tmps->linedef,x,y);*/
-				
+
 				vertices = ResizeMemory(vertices, sizeof(struct Vertex) * (num_verts+1));
 				vertices[num_verts].x = x;
 				vertices[num_verts].y = y;
 	
 				news = GetMemory(sizeof( struct Seg));
-	
+
 				news->next = tmps->next;
 				tmps->next = news;
 				news->start = num_verts;
@@ -268,7 +213,7 @@ void DivideSegs(struct Seg *ts,struct Seg **rs,struct Seg **ls)
 
 /*--------------------------------------------------------------------------*/
 
-int IsItConvex( struct Seg *ts)
+static __inline__ int IsItConvex( struct Seg *ts)
 {
    struct Seg *line,*check;
    int   sector,val;
@@ -320,10 +265,10 @@ int IsItConvex( struct Seg *ts)
 
 /*--------------------------------------------------------------------------*/
 
-int CreateSSector(struct Seg *tmps)
+static __inline__ int CreateSSector(struct Seg *tmps)
 {
 	int n;
-	
+
 	if(num_ssectors == 0)
 		{
 		ssectors = GetMemory(sizeof(struct SSector));
@@ -367,25 +312,81 @@ int CreateSSector(struct Seg *tmps)
 */
 		num_psegs++;
 		}
-	
+
 	ssectors[num_ssectors].num = num_psegs-n;
-	
+
 	num_ssectors++;
-	
+
 	return num_ssectors-1;
 }
 
 /*- translate (dx, dy) into an integer angle value (0-65535) ---------------*/
 
-unsigned ComputeAngle( int dx, int dy)
+static __inline__ unsigned ComputeAngle( int dx, int dy)
 {
    double w;
 
 	w = (atan2( (double) dy , (double) dx) * (double)(65536/(M_PI*2)));
 
 	if(w<0) w = (double)65536+w;
-	
+
 	return (unsigned) w;
+}
+
+static struct Node *CreateNode(struct Seg *ts)
+{
+	struct Node *tn;
+	struct Seg *rights = NULL;
+	struct Seg *lefts = NULL;
+
+	tn = GetMemory( sizeof( struct Node));				/* Create a node*/
+ 
+	DivideSegs(ts,&rights,&lefts);						/* Divide node in two*/
+
+	num_nodes++;
+
+	tn->x = node_x;											/* store node line info*/
+	tn->y = node_y;
+	tn->dx = node_dx;
+	tn->dy = node_dy;
+
+	FindLimits(lefts);										/* Find limits of vertices	*/
+
+	tn->maxy2 = lmaxy;
+	tn->miny2 = lminy;
+	tn->minx2 = lminx;
+	tn->maxx2 = lmaxx;
+
+	if(IsItConvex(lefts))	  								/* Check lefthand side*/
+		{
+		tn->nextl = CreateNode(lefts);					/* still segs remaining*/
+		tn->chleft = 0;
+		}
+	else
+		{
+		tn->nextl = NULL;
+		tn->chleft = CreateSSector(lefts) | 0x8000;
+		}
+
+	FindLimits(rights);										/* Find limits of vertices*/
+	
+	tn->maxy1 = lmaxy;
+	tn->miny1 = lminy;
+	tn->minx1 = lminx;
+	tn->maxx1 = lmaxx;
+
+	if(IsItConvex(rights))									/* Check righthand side*/
+		{
+		tn->nextr = CreateNode(rights);					/* still segs remaining*/
+		tn->chright = 0;
+		}
+	else
+		{
+		tn->nextr = NULL;
+		tn->chright =  CreateSSector(rights) | 0x8000;
+		}
+
+	return tn;
 }
 
 /*---------------------------------------------------------------------------*
@@ -415,7 +416,7 @@ unsigned ComputeAngle( int dx, int dy)
    program to you: please be kind with me...
 
    If you need more information about this, here is my E-mail address:
-   quinet@montefiore.ulg.ac.be (Rapha‰l Quinet).
+   Raphael.Quinet@eed.ericsson.se (Rapha‰l Quinet).
 
    Short description of the algorithm:
      1 - Create one Seg for each SideDef: pick each LineDef in turn.  If it

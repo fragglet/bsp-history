@@ -72,7 +72,7 @@ struct Sector
 };
 
 /*--------------------------------------------------------------------------*/
-/* These are the structure used for creating the NODE bsp tree.
+/* These are the structure used for creating the NODE bsp tree.             */
 /*--------------------------------------------------------------------------*/
 
 struct Seg
@@ -84,6 +84,8 @@ struct Seg
    short int flip;      /* true if not the same direction as linedef */
    unsigned short dist; /* distance from starting point */
 	struct Seg *next;
+        long tmpdist;   /* Temporary distance */
+        short psx,psy,pex,pey;
 };
 
 struct Pseg

@@ -1,0 +1,90 @@
+This is BSP version 1.5 dos extended, written by Colin Reed:
+creed@graymatter.on.ca
+
+Please send all questions about BSP to Lee Killough (killough@convex.com,
+or killough@rsn.hp.com), since Colin Reed is too busy now.
+
+-----------------------------------------------------------
+
+Changes from 1.4x to 1.5x:
+
+Replaced GO32.EXE with newer version, to support Windows
+and DPMI.
+
+-----------------------------------------------------------
+
+Changes from 1.3x to 1.4x:
+
+Lee Killough:
+
+Fixed bug which caused BSP to "do nothing" on systems where
+GO32.EXE was not in the user's path.
+
+Added -factor option to allow changing the heuristic used by the
+node picker. Factor can be any positive integer, and the larger
+the factor, the more costly seg splits are. A factor of 17 is the
+default and behaves just like earlier versions of BSP. Changing the
+factor can sometimes prevent visplane overflows in wads. But then
+again, some wads have just too many visible 2s linedefs for the
+node builder to make a difference. If you have visplane overflows,
+experiment with the -factor option before giving up.
+
+-----------------------------------------------------------
+
+Changes from 1.2x to 1.3x:
+
+New version due to performance enchancements by Lee Killough
+(killough@convex.com, or killough@rsn.hp.com).
+
+Runs at least 3 times as fast as before, due to changes in PickNode.
+Same results are obtained, but with greater speed. Differences from
+1.2x:
+
+     PickNode() rewritten to maximize performance. New PickNode()
+     algorithm features pruning strategy which allows inner loop
+     to exit as soon as a seg is detected as being worse than the
+     best so far.
+
+     All floating-point arithmetic inside inner loop has been eliminated.
+
+     GetVertexes() changed and Reference() removed, replaced with a
+     faster vertex renumbering algorithm which also removes lines of
+     length zero.
+
+     IsLineDefInside() tuned by eliminating bit mask variable.
+
+     Functions are static, to reduce code size by permitting total
+     inlining.
+
+     Various other minor performance enhancements
+
+-----------------------------------------------------------
+
+Changes from 1.1 to 1.2x:
+
+New version 1.2 due to bug found by Mark Harrison that caused some
+problems with flipped segs having their textures buggered up.
+
+The GO32 dos extender has been pre-pended to the executable.
+
+-----------------------------------------------------------
+
+This builds a BSP node tree for your DOOM wad files.
+
+Usage:
+
+BSP [-factor nnn] <input file> [<output file>]
+
+If no output file is specified 'tmp.wad' is written.
+
+-----------------------------------------------------------
+
+This ZIP includes the fullly commented source code for all you
+Doom editor/utility writers out there.
+
+-----------------------------------------------------------
+
+A known problem is a conflict between the GO32 dos extender
+and QEMM's DPMI... put 'set GO32=nodpmi' in your autoexec.bat
+to avoid problems.
+
