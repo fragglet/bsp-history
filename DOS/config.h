@@ -44,5 +44,5 @@
 #define PACKAGE "bsp"
 
 /* Version number of package */
-#define VERSION "5.0"
+#define VERSION "5.1"
 

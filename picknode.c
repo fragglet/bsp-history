@@ -1,6 +1,6 @@
 /*- PICKNODE.C --------------------------------------------------------------*
 
-  $Id: picknode.c,v 1.2 2000/08/24 21:37:08 cph Exp $
+  $Id: picknode.c,v 1.3 2000/09/07 19:51:49 cph Exp $
 
  To be able to divide the nodes down, this routine must decide which is the
  best Seg to use as a nodeline. It does this by selecting the line with least
@@ -26,7 +26,7 @@
 
 int factor=2*FACTOR+1;
 
-struct Seg *PickNode_traditional(struct Seg *ts)
+struct Seg *PickNode_traditional(struct Seg *ts, const bbox_t bbox)
 {
  struct Seg *best = ts;
  long bestcost=LONG_MAX;
@@ -125,7 +125,7 @@ struct Seg *PickNode_traditional(struct Seg *ts)
    counted if only invisible regions separate the visible areas.
 */
 
-struct Seg *PickNode_visplane(struct Seg *ts)
+struct Seg *PickNode_visplane(struct Seg *ts, const bbox_t bbox)
 {
  struct Seg *best = ts;
  long bestcost=LONG_MAX;
@@ -134,8 +134,6 @@ struct Seg *PickNode_visplane(struct Seg *ts)
 
  for (part=ts;part;part=part->next)     /* Count once and for all */
    cnt++;
-
- FindLimits(ts);
 
  for (part=ts;part;part=part->next)	/* Use each Seg as partition*/
   {
@@ -232,16 +230,16 @@ struct Seg *PickNode_visplane(struct Seg *ts)
       {
        long l;
        if (!part->pdx)
-         l=lmaxy-lminy;
+         l=bbox[BB_TOP]-bbox[BB_BOTTOM];
        else
          if (!part->pdy)
-           l=lmaxx-lminx;
+           l=bbox[BB_RIGHT]-bbox[BB_LEFT];
          else
           {
-           double t1=(part->psx-lmaxx)/(double) part->pdx;
-           double t2=(part->psx-lminx)/(double) part->pdx;
-           double t3=(part->psy-lmaxy)/(double) part->pdy;
-           double t4=(part->psy-lminy)/(double) part->pdy;
+           double t1=(part->psx-bbox[BB_RIGHT ])/(double) part->pdx;
+           double t2=(part->psx-bbox[BB_LEFT  ])/(double) part->pdx;
+           double t3=(part->psy-bbox[BB_TOP   ])/(double) part->pdy;
+           double t4=(part->psy-bbox[BB_BOTTOM])/(double) part->pdy;
            if (part->pdx>0)
             {
              double t=t1;

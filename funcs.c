@@ -1,5 +1,5 @@
 /*- FUNCS.C ----------------------------------------------------------------*/
-/* $Id: funcs.c,v 1.5 2000/08/27 11:19:56 cph Exp $ */
+/* $Id: funcs.c,v 1.6 2001/07/21 15:10:08 cph Exp $ */
 /*- terminate the program reporting an error -------------------------------*/
 
 #include "structs.h"
@@ -39,6 +39,7 @@ void Verbose(const char *errstr, ...)
    va_end( args);
 }
 
+#ifndef HAVE_LIBDMALLOC
 /*- allocate memory with error checking ------------------------------------*/
 void *GetMemory( size_t size)
 {
@@ -59,5 +60,6 @@ void *ResizeMemory( void *old, size_t size)
 }
 
 
+#endif
 /*--------------------------------------------------------------------------*/
 

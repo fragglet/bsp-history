@@ -1,5 +1,5 @@
 /*- MAKENODE.C --------------------------------------------------------------*
- $Id: makenode.c,v 1.5 2000/08/27 19:04:43 cph Exp $
+ $Id: makenode.c,v 1.7 2002/05/04 14:49:15 cph Exp $
  Recursively create nodes and return the pointers.
 *---------------------------------------------------------------------------*/
 #include "structs.h"
@@ -48,7 +48,8 @@ int SplitDist(struct Seg *ts)
  else put the segs into rights list.
 *---------------------------------------------------------------------------*/
 
-inline void DivideSegs(struct Seg *ts,struct Seg **rs,struct Seg **ls)
+static inline void 
+DivideSegs(struct Seg *ts, struct Seg **rs, struct Seg **ls, const bbox_t bbox)
 {
 	struct Seg *rights,*lefts;
 	struct Seg *tmps,*best,*news,*prev;
@@ -57,22 +58,9 @@ inline void DivideSegs(struct Seg *ts,struct Seg **rs,struct Seg **ls)
 
 	struct Seg *strights,*stlefts;
         int num_new=0;
-/*
-	int num_secs_r,num_secs_l,last_sec_r,last_sec_l;
-	int num,least_splits,least;
-	int fv,tv,num_new = 0;
-	int bangle,cangle,cangle2,cfv,ctv,dx,dy;
-*/
 	short int x,y,val;
 
-	FindLimits(ts);							/* Find limits of this set of Segs*/
-#if 0
-	sp.halfsx = (lmaxx - lminx) / 2;		/* Find half width of Node*/
-	sp.halfsy = (lmaxy - lminy) / 2;
-	sp.halfx = lminx + sp.halfsx;			/* Find middle of Node*/
-	sp.halfy = lminy + sp.halfsy;
-#endif
-	best = PickNode(ts);						/* Pick best node to use.*/
+	best = PickNode(ts,bbox);			/* Pick best node to use.*/
 
 	if(best == NULL) ProgError("Couldn't pick nodeline!");
 
@@ -379,7 +367,7 @@ inline unsigned ComputeAngle( int dx, int dy)
 	return (unsigned) w;
 }
 
-struct Node *CreateNode(struct Seg *ts)
+struct Node *CreateNode(struct Seg *ts, const bbox_t bbox)
 {
 	struct Node *tn;
 	struct Seg *rights = NULL;
@@ -387,7 +375,7 @@ struct Node *CreateNode(struct Seg *ts)
 
 	tn = GetMemory( sizeof( struct Node));				/* Create a node*/
  
-	DivideSegs(ts,&rights,&lefts);						/* Divide node in two*/
+	DivideSegs(ts,&rights,&lefts,bbox);						/* Divide node in two*/
 
 	num_nodes++;
 
@@ -396,17 +384,14 @@ struct Node *CreateNode(struct Seg *ts)
 	tn->dx = node_dx;
 	tn->dy = node_dy;
 
-	FindLimits(lefts);										/* Find limits of vertices	*/
-
-	tn->maxy2 = lmaxy;
-	tn->miny2 = lminy;
-	tn->minx2 = lminx;
-	tn->maxx2 = lmaxx;
+	FindLimits(lefts,tn->leftbox);				/* Find limits of vertices	*/
 
 	if(IsItConvex(lefts))	  								/* Check lefthand side*/
 		{
-		tn->nextl = CreateNode(lefts);					/* still segs remaining*/
+	        if (verbosity > 1) Verbose("L");
+		tn->nextl = CreateNode(lefts,tn->leftbox);	/* still segs remaining*/
 		tn->chleft = 0;
+	        if (verbosity > 1) Verbose("\b");
 		}
 	else
 		{
@@ -414,17 +399,14 @@ struct Node *CreateNode(struct Seg *ts)
 		tn->chleft = CreateSSector(lefts) | 0x8000;
 		}
 
-	FindLimits(rights);										/* Find limits of vertices*/
+	FindLimits(rights, tn->rightbox);										/* Find limits of vertices*/
 	
-	tn->maxy1 = lmaxy;
-	tn->miny1 = lminy;
-	tn->minx1 = lminx;
-	tn->maxx1 = lmaxx;
-
 	if(IsItConvex(rights))									/* Check righthand side*/
 		{
-		tn->nextr = CreateNode(rights);					/* still segs remaining*/
+	        if (verbosity > 1) Verbose("R");
+		tn->nextr = CreateNode(rights, tn->rightbox);	/* still segs remaining*/
 		tn->chright = 0;
+	        if (verbosity > 1) Verbose("\b");
 		}
 	else
 		{

@@ -28,7 +28,7 @@ struct lumplist {
  struct lumplist *next;
  struct directory *dir;
  void *data;
- char islevel;
+ struct lumplist *level;
 };
 
 /*- The level structures ---------------------------------------------------*/
@@ -109,12 +109,16 @@ struct Pseg
    unsigned short dist; /* distance from starting point */
 };
 
+/* cph - dedicated type for bounding boxes, as in the Doom source */
+typedef short int bbox_t[4];
+enum { BB_TOP, BB_BOTTOM, BB_LEFT, BB_RIGHT };
+
 struct Node
 {
    short int x, y;									/* starting point*/
    short int dx, dy;									/* offset to ending point*/
-   short int maxy1, miny1, minx1, maxx1;		/* bounding rectangle 1*/
-   short int maxy2, miny2, minx2, maxx2;		/* bounding rectangle 2*/
+   bbox_t rightbox;					/* bounding rectangle 1*/
+   bbox_t leftbox;					/* bounding rectangle 2*/
    short int chright, chleft;				/* Node or SSector (if high bit is set)*/
 	struct Node *nextr,*nextl;
 	short int node_num;	        		/* starting at 0 (but reversed when done)*/
@@ -125,8 +129,8 @@ struct Pnode
 {
    short int x, y;									/* starting point*/
    short int dx, dy;									/* offset to ending point*/
-   short int maxy1, miny1, minx1, maxx1;		/* bounding rectangle 1*/
-   short int maxy2, miny2, minx2, maxx2;		/* bounding rectangle 2*/
+   bbox_t rightbox;					/* bounding rectangle 1*/
+   bbox_t leftbox;					/* bounding rectangle 2*/
    short int chright, chleft;				/* Node or SSector (if high bit is set)*/
 };
 

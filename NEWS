@@ -1,4 +1,15 @@
 -------------------------------------------------------------------------------
+Changes in v5.1 - Colin Phipps, 7/2002:
+
+- Compressed blockmap support, contributed by Simon "fraggle" Howard. Not
+  enabled by default, but might be in a future version.
+- No longer strips 0-length lines - these are a legitimate editing feature; if
+  your level editor makes them when you don't want it to, then fix your editor.
+- No longer removes the content of MAPxx or ExMx lumps (these are used by some
+  ports to contain extended data e.g. Fragglescript)
+- fixes to big endian support, from Oliver Kraus
+
+-------------------------------------------------------------------------------
 Changes in v5.0 - Colin Phipps, 8/2000:
 
 Based on BSP v3.0, this version brings together a number of enhancements to

@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_INIT(bsp.c)
 
 dnl --- Fire up automake
-AM_INIT_AUTOMAKE(bsp,5.0)
+AM_INIT_AUTOMAKE(bsp,5.1)
 AM_CONFIG_HEADER(config.h)
 
 dnl C compiler options
@@ -23,6 +23,9 @@ AC_PROG_MAKE_SET
 
 dnl Checks for libraries.
 AC_CHECK_LIB(m, sqrt)
+
+dnl Debugging
+AC_ARG_ENABLE(dmalloc,[  --enable-dmalloc     use the dmalloc heap debug library],AC_CHECK_LIB(dmalloc,malloc))
 
 dnl Checks for header files.
 AC_HEADER_STDC

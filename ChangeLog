@@ -1,5 +1,34 @@
 This ChangeLog contains a history of changes and development from v5 onward.
 
+2002/05/04
+
+It seems my initial assessment of the fragglescript problem was well short. 
+Simply not zeroing the length field for the lump is not enough - BSP overloads
+the lumplist->data field for both lump data and level data (i.e. the linked
+list of level lumps).
+
+It's a classic case of field overloading with a flag field (in this case
+lumplist->islevel) which is a horrid form of programming. So I replaced
+->islevel with ->level, a dedicated field for holding the linked list of level
+lumps (and which can be used in place of ->islevel for boolean tests). This
+frees ->data for its intended use so it can hold the lump data for map lumps.
+Tested on HR.WAD and seems to work fine.
+
+2002/04/07
+
+Ok, Andre took the updated man page and reorganised it; merged his improved
+version.
+
+2002/04/06
+
+At Andre's insistence, I updated the man page for bsp. I'd forgotten there was
+a man page actually. It wasn't being installed, so I added it to the
+Makefile.am.
+
+2002/04/06
+
+Ok, crude approximation of a Zennode-like progress bar in place.
+
 2000/08/27
 
 Fixed up a large number of memory leaks. Basically BSP was designed to do 
