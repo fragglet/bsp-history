@@ -1,3 +1,5 @@
+#include "config.h"
+
 /*- Doom Structures .. Colin Reed 1994 -------------------------------------*/
 
 struct wad_header 					/* Linked wad files list.*/
@@ -20,6 +22,13 @@ struct Block
 	short miny;
 	short xblocks;
 	short yblocks;
+};
+
+struct lumplist {
+ struct lumplist *next;
+ struct directory *dir;
+ void *data;
+ char islevel;
 };
 
 /*- The level structures ---------------------------------------------------*/

@@ -1,4 +1,7 @@
 /*- PICKNODE.C --------------------------------------------------------------*
+
+  $Id: picknode.c,v 1.2 2000/08/24 21:37:08 cph Exp $
+
  To be able to divide the nodes down, this routine must decide which is the
  best Seg to use as a nodeline. It does this by selecting the line with least
  splits and has least difference of Segs on either side of it.
@@ -12,15 +15,18 @@
  due to roundoff error may occur, but they are insignificant).
 *---------------------------------------------------------------------------*/
 
+#include "structs.h"
+#include "bsp.h"
+
 /* This is the original "factor" used by previous versions of the code -- it
    must be maintained in a macro to avoid mistakes if we are to keep the 
    tradition of using it, and being able to modify it.*/
 
 #define FACTOR 8  
 
-static int factor=2*FACTOR+1;
+int factor=2*FACTOR+1;
 
-static struct Seg *PickNode_traditional(struct Seg *ts)
+struct Seg *PickNode_traditional(struct Seg *ts)
 {
  struct Seg *best = ts;
  long bestcost=LONG_MAX;
@@ -119,7 +125,7 @@ static struct Seg *PickNode_traditional(struct Seg *ts)
    counted if only invisible regions separate the visible areas.
 */
 
-static struct Seg *PickNode_visplane(struct Seg *ts)
+struct Seg *PickNode_visplane(struct Seg *ts)
 {
  struct Seg *best = ts;
  long bestcost=LONG_MAX;
@@ -269,7 +275,7 @@ static struct Seg *PickNode_visplane(struct Seg *ts)
  returns int xcoord, int ycoord
 *---------------------------------------------------------------------------*/
 
-static __inline__ void ComputeIntersection(short int *outx,short int *outy)
+void ComputeIntersection(short int *outx,short int *outy)
 {
 	double a,b,a2,b2,l2,w,d;
 
@@ -329,7 +335,7 @@ static __inline__ void ComputeIntersection(short int *outx,short int *outy)
  side checker.
 *---------------------------------------------------------------------------*/
 
-static __inline__ int DoLinesIntersect()
+int DoLinesIntersect()
 {
 	short int x,y,val = 0;
 

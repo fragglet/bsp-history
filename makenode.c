@@ -1,6 +1,39 @@
 /*- MAKENODE.C --------------------------------------------------------------*
+ $Id: makenode.c,v 1.5 2000/08/27 19:04:43 cph Exp $
  Recursively create nodes and return the pointers.
 *---------------------------------------------------------------------------*/
+#include "structs.h"
+#include "bsp.h"
+
+short node_x, node_y, node_dx, node_dy;
+
+/*--------------------------------------------------------------------------*/
+
+int SplitDist(struct Seg *ts)
+{
+	double t,dx,dy;
+
+	if(ts->flip==0)
+		{
+		dx = (double)(vertices[linedefs[ts->linedef].start].x)-(vertices[ts->start].x);
+		dy = (double)(vertices[linedefs[ts->linedef].start].y)-(vertices[ts->start].y);
+
+		if(dx == 0 && dy == 0) 
+			fprintf(stderr,"Trouble in SplitDist %f,%f\n",dx,dy);
+		t = sqrt((dx*dx) + (dy*dy));
+		return (int)t;
+		}
+	else
+		{
+		dx = (double)(vertices[linedefs[ts->linedef].end].x)-(vertices[ts->start].x);
+		dy = (double)(vertices[linedefs[ts->linedef].end].y)-(vertices[ts->start].y);
+
+		if(dx == 0 && dy == 0) 
+			fprintf(stderr,"Trouble in SplitDist %f,%f\n",dx,dy);
+		t = sqrt((dx*dx) + (dy*dy));
+		return (int)t;
+		}
+}
 
 /*---------------------------------------------------------------------------*
  Split a list of segs (ts) into two using the method described at bottom of
@@ -15,14 +48,7 @@
  else put the segs into rights list.
 *---------------------------------------------------------------------------*/
 
-static long psx,psy,pex,pey,pdx,pdy;
-static long lsx,lsy,lex,ley;
-static short node_x;
-static short node_y;
-static short node_dx;
-static short node_dy;
-
-static __inline__ void DivideSegs(struct Seg *ts,struct Seg **rs,struct Seg **ls)
+inline void DivideSegs(struct Seg *ts,struct Seg **rs,struct Seg **ls)
 {
 	struct Seg *rights,*lefts;
 	struct Seg *tmps,*best,*news,*prev;
@@ -233,7 +259,7 @@ static __inline__ void DivideSegs(struct Seg *ts,struct Seg **rs,struct Seg **ls
 
 /*--------------------------------------------------------------------------*/
 
-static __inline__ int IsItConvex( struct Seg *ts)
+static inline int IsItConvex( struct Seg *ts)
 {
    struct Seg *line=ts,*check;
    int   sector,val;
@@ -282,8 +308,9 @@ static __inline__ int IsItConvex( struct Seg *ts)
 
 /*--------------------------------------------------------------------------*/
 
-static __inline__ int CreateSSector(struct Seg *tmps)
+static inline int CreateSSector(struct Seg *tmps)
 {
+	struct Seg *next;
 	int n;
 
 	if(num_ssectors == 0)
@@ -301,7 +328,7 @@ static __inline__ int CreateSSector(struct Seg *tmps)
 	
 /*	printf("\n");*/
 
-	for(;tmps;tmps=tmps->next)
+	for(;tmps;tmps=next)
 		{
 		if(num_psegs == 0)
 			{
@@ -328,6 +355,8 @@ static __inline__ int CreateSSector(struct Seg *tmps)
 			psegs[num_psegs].dist);
 */
 		num_psegs++;
+		next = tmps->next;
+		free(tmps); /* This seg is done */
 		}
 
 	ssectors[num_ssectors].num = num_psegs-n;
@@ -339,7 +368,7 @@ static __inline__ int CreateSSector(struct Seg *tmps)
 
 /*- translate (dx, dy) into an integer angle value (0-65535) ---------------*/
 
-static __inline__ unsigned ComputeAngle( int dx, int dy)
+inline unsigned ComputeAngle( int dx, int dy)
 {
    double w;
 
@@ -350,7 +379,7 @@ static __inline__ unsigned ComputeAngle( int dx, int dy)
 	return (unsigned) w;
 }
 
-static struct Node *CreateNode(struct Seg *ts)
+struct Node *CreateNode(struct Seg *ts)
 {
 	struct Node *tn;
 	struct Seg *rights = NULL;

@@ -1,7 +1,15 @@
 /*- FUNCS.C ----------------------------------------------------------------*/
+/* $Id: funcs.c,v 1.5 2000/08/27 11:19:56 cph Exp $ */
 /*- terminate the program reporting an error -------------------------------*/
 
-static void ProgError( char *errstr, ...)
+#include "structs.h"
+#include "bsp.h"
+
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+
+void ProgError(const char *errstr, ...)
 {
    va_list args;
 
@@ -10,12 +18,29 @@ static void ProgError( char *errstr, ...)
    vfprintf( stderr, errstr, args);
    fprintf(stderr, " ***\n");
    va_end( args);
+#ifdef HAVE_UNLINK
+   if (unlinkwad) unlink(unlinkwad);
+#endif
    exit( 5);
 }
 
-/*- allocate memory with error checking ------------------------------------*/
+/* Print stuff if verbose output */
 
-static __inline__ void *GetMemory( size_t size)
+int verbosity;
+
+void Verbose(const char *errstr, ...)
+{
+   va_list args;
+
+   if (!verbosity) return;
+
+   va_start( args, errstr);
+   vprintf(errstr, args);
+   va_end( args);
+}
+
+/*- allocate memory with error checking ------------------------------------*/
+void *GetMemory( size_t size)
 {
    void *ret = malloc( size);
    if (!ret)
@@ -25,7 +50,7 @@ static __inline__ void *GetMemory( size_t size)
 
 /*- reallocate memory with error checking ----------------------------------*/
 
-static __inline__ void *ResizeMemory( void *old, size_t size)
+void *ResizeMemory( void *old, size_t size)
 {
    void *ret = realloc( old, size);
    if (!ret)

@@ -1,0 +1,62 @@
+This ChangeLog contains a history of changes and development from v5 onward.
+
+2000/08/27
+
+Fixed up a large number of memory leaks. Basically BSP was designed to do 
+one level only, and the multi-level support was an afterthought. It 
+did multiple levels, but memory-wise it assumed it needn't bother to 
+free one level's stuff before moving on the the next. Since it's easy to 
+fix, I fixed it. It's now practical to use it for multi-level PWADs.
+Builds doom.wad in < 1.5megs now (as compared to 15megs before).
+
+Added big endian support. Imported the extra code from the xwadtools 
+version. I rely on autoconf to detect if the machine is big endian. 
+No adverse affects on x86 - I also verified that it compiles if 
+WORDS_BIGENDIAN is defined. Can't do a real test myself though.
+
+2000/08/26
+
+Support for pipes and stuff was today's business. Added the isatty() 
+test from the yadex version of BSP that supresses the spinning 
+progress thingy when stdout is redirected.
+
+Added support for input being from a pipe. I'm writing for UNIX damnit, 
+so it ought to be usable like other UNIX programs! :-)
+
+For input pipes, it just reads to a temp file, then reads back from the 
+temp file. For output I was less sure what to do: there are 3 
+senarios:
+
+1) output to a file that either doesn't exist, or can be overwritten in any 
+ case.
+2) output to a file which we only want overwritten once the build is complete 
+ and sucessful (e.g. writing the output back to the input filename)
+3) output to a pipe
+
+For (3), we need to write to a temp file then copy to the pipe, because 
+we have to be able to fseek(3) on the output file to write a Doom WAD.
+For (2), we need to write to a temp file then copy to the output when 
+we're done.
+
+In the end, I went for an easy compromise. If the output file already 
+exists (includes the case of a pipe), then we write the WAD to a temporary 
+file, then copy it to the real output file once we're done. That copes 
+with (2) and (3) fine.
+
+2000/08/25
+
+Made a makefile to built the test wads. I copied the test WADs to another 
+machine, and ran original DOS BSP 3.0 on them, then made a note of the MD5 
+sums of the resulting files. Using these I can check that my version is still 
+producing identical results to the original v3.0.
+
+2000/08/23
+
+Checked in the BSP 3.0 source. Immediately ditched the existing makefiles and 
+created GNU autoconf/automake ones - much less messy.
+
+First major problem to overcome was the crude existing build system - all the 
+.c files were #include'd into bsp.c, which was kinda ugly. And whoever wrote 
+this had an obsession with labelling everything "static" even though there was 
+only one source file. Fun.
+

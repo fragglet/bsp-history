@@ -1,7 +1,28 @@
-This is BSP version 3.0 dos extended, written by Colin Reed, Lee Killough
+-------------------------------------------------------------------------------
+Changes in v5.0 - Colin Phipps, 8/2000:
 
-Please send all comments and/or questions about BSP to Lee Killough
-(killough@classicgaming.com).
+Based on BSP v3.0, this version brings together a number of enhancements to
+BSP that have been floating around by various people.
+
+There is no significant difference, in terms of the nodes produced, between
+this version and BSP v3.0. In fact on my computer (FreeBSD 4.1-STABLE, PII),
+the output is byte-for-byte identical with BSP v3.0. This is not true for the
+binary DOS and Win32 versions I'm distributing though, because they are linked
+against a different math library, but they are still effectively identical to
+BSP v3.0 I believe.
+
+So what changes are there you ask? Well...
+
+- better UNIX support, from Udo Monk and Andre Majorel
+- big endian support, from Oliver Kraus
+- from myself:
+  - major clean-up of the source code, splitting some stuff out into separate
+   files so there is less mixing of unrelated code.
+  - vastly more memory-efficient when working on large multi-level WADs
+  - more flexibility about input and output 
+    - can read from and write to pipes on UNIX systems
+    - output file can be the same as the input file
+  - Win32 version
 
 -------------------------------------------------------------------------------
 Changes in 3.0x:
@@ -182,32 +203,4 @@ problems with flipped segs having their textures buggered up.
 
 The GO32 dos extender has been pre-pended to the executable.
 
------------------------------------------------------------
-
-This builds a BSP node tree for your DOOM wad files.
-
-Usage:
-
-BSP [-factor nnn] <input file> [<output file>]
-
-If no output file is specified 'tmp.wad' is written.
-
------------------------------------------------------------
-
-This ZIP includes the fullly commented source code for all you
-Doom editor/utility writers out there.
-
------------------------------------------------------------
-
-A known problem is a conflict between the GO32 dos extender
-and QEMM's DPMI... put 'set GO32=nodpmi' in your autoexec.bat
-to avoid problems.
-
------------------------------------------------------------
-
-Future enhancements (possibly, depending on demand):
-
-* Ability to specify level(s) to build separately
-
-* Reject map build
 

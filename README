@@ -1,0 +1,101 @@
+
+   This is v5.0 of BSP, one of the best node builders for Doom.
+   
+   BSP is currently maintained by [1]Colin Phipps. Please see the [2]BSP
+   homepage for news about BSP, the latest releases, and other resources.
+   
+What are Nodes?
+
+   Doom uses a rendering algorithm based on a binary space partition,
+   otherwise known as a BSP tree. This is stored in a data lump called
+   NODES in the WAD file. So tools to build the BSP tree are known as
+   node builders.
+   
+   Before you can play a level that you have created, you must use a node
+   builder to create the data that Doom will use to render the level. BSP
+   is one of several node builders that can do this.
+   
+Features
+
+     * Fast Doom node builder
+     * Supports a number of special effects
+     * Supports multi-level WADs. Preserves non-level data in WADs
+     * Includes an optional alternative algorithm for choosing the nodes
+       which reduces the chance of visplane overflows.
+     * Compiles on DOS, Win32, Linux, UNIX
+     * Supports big endian systems (untested as yet)
+       
+Getting BSP
+
+   For Linux and UNIX systems, you can download and compile the BSP
+   source code. bsp-5.0.tar.gz contains complete source code. See the
+   included file INSTALL for instructions.
+   
+   For DOS and Win32 systems, download bsp50.zip, which contains binaries
+   for DOS and Win32 (that is, Windows 95/98/NT/ME/2000). bsp.exe is the
+   version for DOS (note: it requires the accompanying dos4gw.exe).
+   bsp-w32.exe is the version for Win32.
+   
+   The latest version of these files can be downloaded at the [3]the
+   download page.
+   
+Usage
+
+   bsp [ -noreject ] [-q ] [ -vp ] inwad [ [ -o ] outwad ]
+   
+   Where:
+   
+   -noreject
+          causes any existing REJECT lump in the WAD file not to be
+          replaced.
+          
+   -q
+          causes BSP to run quietly, only printing output if there are
+          errors or warnings
+          
+   -vp
+          causes BSP to use an alternative algorithm for choosing split
+          lines, which reduces the chance of visplane overflows. See the
+          included visplane.txt for more information.
+          
+   inwad is the input WAD file. This may contain any number of levels and
+   other lumps. The nodes and associated data resources will be built for
+   every level in this WAD. Any other data present in the WAD will be
+   copied to the output WAD unchanged.
+   
+   outwad is the output WAD file. If the output file already exists, BSP
+   will write it's output to a temporary file while it is working, and
+   will only overwrite the output file once it is finished. In
+   particular, it is safe for outwad to be the same as inwad, although
+   this is not recommended unless you keep other backups :-).
+   
+   Either inwad or outwad can be pipes or special files. On most UNIX
+   systems, you can have BSP read from STDIN and write to STDOUT by using
+   it as follows:
+   
+     bsp -q /dev/stdin /dev/stdout
+     
+Special Effects
+
+     * HOM-free transparent doors:
+       Simply make the sector referenced by the doortracks have a sector
+       tag of >= 900. No need to remember sector numbers and type them in
+       on a command line -- just use any sector tag >= 900 to permanently
+       mark the sector special.
+       See TRANSDOR.WAD for an example of sector tags in the 900's being
+       used to create HOM-free transparent door effects.
+     * Precious lines:
+       If a linedef has a sector tag >= 900, then it is treated as
+       "precious" and will not be split unless absolutely necessary. This
+       is good to use around borders of deep water, invisible stairs,
+       etc.
+       Furthermore, just for grins, if the linedef's tag is 999, then the
+       sidedefs' x-offsets set an angle adjustment in degrees to be
+       applied -- you can look straight at a wall, but it might come
+       right at you on both sides and "stretch".
+
+References
+
+   1. mailto:cph@lxdoom.linuxgames.com
+   2. http://sourceforge.net/projects/doombsp
+   3. http://sourceforge.net/project/showfiles.php?group_id=10283
