@@ -6,9 +6,9 @@ static void ProgError( char *errstr, ...)
    va_list args;
 
    va_start( args, errstr);
-   printf( "\nProgram Error: *** ");
-   vprintf( errstr, args);
-   printf( " ***\n");
+   fprintf(stderr, "\nProgram Error: *** ");
+   vfprintf( stderr, errstr, args);
+   fprintf(stderr, " ***\n");
    va_end( args);
    exit( 5);
 }

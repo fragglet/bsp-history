@@ -21,7 +21,7 @@ static __inline__ void DivideSegs(struct Seg *ts,struct Seg **rs,struct Seg **ls
 	struct Seg *tmps,*best,*news,*prev;
 	struct Seg *add_to_rs,*add_to_ls;
   	struct Seg *new_best=NULL,*new_rs,*new_ls;
-	
+
 	struct Seg *strights,*stlefts;
         int num_new=0;
 /*
@@ -33,12 +33,12 @@ static __inline__ void DivideSegs(struct Seg *ts,struct Seg **rs,struct Seg **ls
 	short int x,y,val;
 
 	FindLimits(ts);							/* Find limits of this set of Segs*/
-
+#if 0
 	sp.halfsx = (lmaxx - lminx) / 2;		/* Find half width of Node*/
 	sp.halfsy = (lmaxy - lminy) / 2;
 	sp.halfx = lminx + sp.halfsx;			/* Find middle of Node*/
 	sp.halfy = lminy + sp.halfsy;
-
+#endif
 	best = PickNode(ts);						/* Pick best node to use.*/
 
 	if(best == NULL) ProgError("Couldn't pick nodeline!");
@@ -82,11 +82,10 @@ static __inline__ void DivideSegs(struct Seg *ts,struct Seg **rs,struct Seg **ls
 				{
 				ComputeIntersection(&x,&y);
 /*				printf("Splitting Linedef %d at %d,%d\n",tmps->linedef,x,y);*/
-
-				vertices = ResizeMemory(vertices, sizeof(struct Vertex) * (num_verts+1));
+ 			        vertices = ResizeMemory(vertices, sizeof(struct Vertex) * (num_verts+1));
 				vertices[num_verts].x = x;
 				vertices[num_verts].y = y;
-	
+
 				news = GetMemory(sizeof( struct Seg));
 
 				news->next = tmps->next;
@@ -215,27 +214,21 @@ static __inline__ void DivideSegs(struct Seg *ts,struct Seg **rs,struct Seg **ls
 
 static __inline__ int IsItConvex( struct Seg *ts)
 {
-   struct Seg *line,*check;
+   struct Seg *line=ts,*check;
    int   sector,val;
 
-	if (ts->flip) sector = sidedefs[linedefs[ ts->linedef].sidedef2].sector;
-   else sector = sidedefs[linedefs[ts->linedef].sidedef1].sector;
-   
-	for (line = ts->next; line; line = line->next)
-   	{
-      if (line->flip)
-      	{
-			if (sidedefs[ linedefs[ line->linedef].sidedef2].sector != sector)
-				return TRUE;
-      	}
-      else
-      	{
-			if (sidedefs[ linedefs[ line->linedef].sidedef1].sector != sector)
-	    		return TRUE;
-			}
-   	}
-   
-	/* all of the segs must be on the same side all the other segs */
+/* All ssectors must come from same sector unless it's marked
+   "special" with sector tag >= 900. Original idea, Lee Killough */
+
+   sector = sidedefs[ts->flip ? linedefs[ts->linedef].sidedef2 :
+                                linedefs[ts->linedef].sidedef1].sector;
+   if (sectors[sector].tag < 900)
+     while ((line=line->next)!=0)
+       if (sidedefs[line->flip ? linedefs[line->linedef].sidedef2 :
+         linedefs[line->linedef].sidedef1].sector != sector)
+           return TRUE;
+
+   /* all of the segs must be on the same side all the other segs */
 
 	for(line=ts;line;line=line->next)
 		{

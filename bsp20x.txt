@@ -1,8 +1,26 @@
-This is BSP version 1.5 dos extended, written by Colin Reed:
-creed@graymatter.on.ca
+This is BSP version 2.0 dos extended, written by Colin Reed:
+creed@graymatter.on.ca.
 
-Please send all questions about BSP to Lee Killough (killough@convex.com,
-or killough@rsn.hp.com), since Colin Reed is too busy now.
+Please send all comments and/or questions about BSP to Lee Killough
+(killough@rsn.hp.com), since Colin Reed is too busy now.
+
+-----------------------------------------------------------
+
+New to 2.0x:
+
+Multilevel support!!!  Automatically builds all levels in wad.
+
+Does not strip textures or other lumps from wads anymore!!!
+
+Supports HOM-free transparent doors:
+
+  Simply make the sector referenced by the doortracks have a
+  sector tag of >= 900. No need to remember sector numbers
+  and type them in on a command line -- just use any sector
+  tag >= 900 to permanently mark the sector special.
+
+  See TRANSDOR.WAD for an example of sector tags in the 900's
+  being used to create HOM-free transparent door effects.
 
 -----------------------------------------------------------
 
@@ -33,8 +51,8 @@ experiment with the -factor option before giving up.
 
 Changes from 1.2x to 1.3x:
 
-New version due to performance enchancements by Lee Killough
-(killough@convex.com, or killough@rsn.hp.com).
+New version due to performance enhancements by Lee Killough
+(killough@rsn.hp.com).
 
 Runs at least 3 times as fast as before, due to changes in PickNode.
 Same results are obtained, but with greater speed. Differences from
@@ -87,4 +105,15 @@ Doom editor/utility writers out there.
 A known problem is a conflict between the GO32 dos extender
 and QEMM's DPMI... put 'set GO32=nodpmi' in your autoexec.bat
 to avoid problems.
+
+-----------------------------------------------------------
+
+Future enhancements (possibly, depending on demand):
+
+* Ability to specify level(s) to build separately
+
+* Reject map build
+
+* Automatic visplane overflow protection  (no, really!)
+
 

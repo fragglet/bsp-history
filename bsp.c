@@ -1,6 +1,6 @@
 /*- BSP.C -------------------------------------------------------------------*
 
- Node builder for DOOM levels (c) 1996 Colin Reed, version 1.5 (dos extended)
+ Node builder for DOOM levels (c) 1997 Colin Reed, version 2.0 (dos extended)
 
  Performance increased 200% over 1.2x
 
@@ -10,8 +10,11 @@
  Credit to:-
 
  Raphael Quinet (A very small amount of code has been borrowed from DEU).
+
  Matt Fell for the doom specs.
- Lee Killough for performance tuning.
+
+ Lee Killough for performance tuning, support for multilevel wads, special
+ effects, and wads with lumps besides levels.
 
  Also, the original idea for some of the techniques where also taken from the
  comment at the bottom of OBJECTS.C in DEU, and the doc by Matt Fell about
@@ -26,63 +29,63 @@
 
 /*- Global Vars ------------------------------------------------------------*/
 
-static FILE *infile,*outfile;
+static FILE *outfile;
 static char *testwad;
 static char *outwad;
 
-static struct wad_header *wad = NULL;
 static struct directory *direc = NULL;
 
 static struct Thing *things;
 static long num_things = 0;
-static long things_start = 0;
+/* static long things_start = 0; */
 
 static struct Vertex *vertices;
 static long num_verts = 0;
-static long vertices_start = 0;
+/* static long vertices_start = 0; */
 
 static struct LineDef *linedefs;
 static long num_lines = 0;
-static long linedefs_start = 0;
+/* static long linedefs_start = 0; */
 
 static struct SideDef *sidedefs;
 static long num_sides = 0;
-static long sidedefs_start = 0;
+/* static long sidedefs_start = 0; */
 
 static struct Sector *sectors;
 static long num_sects = 0;
-static long sectors_start = 0;
+/* static long sectors_start = 0; */
 
 static struct SSector *ssectors;
 static long num_ssectors = 0;
-static long ssectors_start = 0;
+/* static long ssectors_start = 0; */
 
 static struct Pseg *psegs = NULL;
 static long num_psegs = 0;
-static long segs_start = 0;
+/* static long segs_start = 0; */
 
 static struct Pnode *pnodes = NULL;
 static long num_pnodes = 0;
 static long pnode_indx = 0;
-static long pnodes_start = 0;
+/* static long pnodes_start = 0; */
 
-static struct Seg *tsegs = NULL;
-static long num_tsegs = 0;
+/* static struct Seg *tsegs = NULL; */
+/* static long num_tsegs = 0; */
 
-static struct Node *nodelist = NULL;
 static long num_nodes = 0;
 
+/*
 static long reject_start;
 static long reject_size;
+*/
 
 static struct Block blockhead;
 static short int *blockptrs;
 static short int *blocklists=NULL;
 static long blockptrs_size;
-static long blockmap_size;
-static long blockmap_start;
+/* static long blockmap_size; */
+/* static long blockmap_start; */
 
-static struct splitter sp;
+/* static struct splitter sp; */
 
 static short node_x;
 static short node_y;
@@ -104,10 +107,21 @@ static long lsx,lsy,lex,ley;
 
 static unsigned char pcnt;
 
+
+static struct lumplist {
+ struct lumplist *next;
+ struct directory *dir;
+ void *data;
+ char islevel;
+} *lumplist,*current_level;
+
+static struct wad_header wad;
+
+
 /*- Prototypes -------------------------------------------------------------*/
 
 static __inline__ void OpenWadFile(char *);
-static __inline__ int  FindDir(char *);
+static __inline__ struct lumplist *FindDir(char *);
 static __inline__ void GetThings(void);
 static __inline__ void GetVertexes(void);
 static __inline__ void GetLinedefs(void);
@@ -132,6 +146,7 @@ static __inline__ long CreateBlockmap(void);
 static __inline__ void progress(void);
 static __inline__ int IsLineDefInside(int, int, int, int, int);
 static __inline__ int CreateSSector(struct Seg *);
+
 
 /*--------------------------------------------------------------------------*/
 
@@ -220,7 +235,7 @@ static __inline__ struct Seg *CreateSegs()
 	short	n,fv,tv;
 	int	dx,dy;
 
-	printf("Creating Segs ..........\n");
+	puts("Creating Segs ..........");
 
 	for(n=0; n < num_lines; n++)			/* step through linedefs and get side*/
 		{											/* numbers*/
@@ -250,7 +265,7 @@ static __inline__ struct Seg *CreateSegs()
 			cs->linedef = n;
 			cs->dist = 0;
 			cs->flip = 0;
-			num_tsegs++;
+/*			num_tsegs++; */
 			}
 		if(linedefs[n].sidedef2 != -1)
 			{														/* create flipped seg*/
@@ -274,7 +289,7 @@ static __inline__ struct Seg *CreateSegs()
 			cs->linedef = n;
 			cs->dist = 0;
 			cs->flip = 1;
-			num_tsegs++;
+/*			num_tsegs++; */
 			}
 		}
 
@@ -282,91 +297,151 @@ static __inline__ struct Seg *CreateSegs()
 }
 
 /*- get the directory from a wad file --------------------------------------*/
+/* rewritten by Lee Killough to support multiple levels and extra lumps */
+
 
 static __inline__ void OpenWadFile(char *filename)
 {
-	struct directory *dir;
+ long i;
+ register struct directory *dir;
+ struct lumplist *levelp=NULL;
+ register struct lumplist *lumpp=NULL;
+ FILE *infile;
 
-	long n;
+	if(!(infile = fopen(filename,"rb")))
+ 	{
+         fprintf(stderr,"Error: Cannot find WAD file %s\n", filename);
+	 exit(1);
+	}
 
-	if((infile = fopen(filename,"rb")) == NULL)
-		{
-                printf("Error: Cannot find WAD file %s", filename);
-		exit(1);
-		}
+	fread(&wad,sizeof(wad),1,infile);
 
-	wad = GetMemory( sizeof( struct wad_header));
+	printf("Opened %cWAD file : %s. %lu dir entries at 0x%lX.\n",
+		wad.type[0],filename,wad.num_entries,wad.dir_start);
 
-	fread(wad,sizeof( struct wad_header),1,infile);
+	direc = GetMemory(sizeof(struct directory) * wad.num_entries);
 
-	printf("Opened %c%c%c%c file : %s. %lu dir entries at %lu.\n",
-		wad->type[0],wad->type[1],wad->type[2],wad->type[3],filename,
-		wad->num_entries,wad->dir_start);
+	fseek(infile,wad.dir_start,0);
+	fread(direc,sizeof(struct directory),wad.num_entries,infile);
 
-	direc = dir = GetMemory( sizeof( struct directory) * wad->num_entries);
+        dir = direc;
+        for (i=wad.num_entries;i--;dir++)
+          {
+           register struct lumplist *l=GetMemory(sizeof(*l));
+           l->dir=dir;
+           l->data=NULL;
+	   l->next=NULL;
+           l->islevel=0;
 
-	fseek(infile,wad->dir_start,0);
+           if (dir->length)
+            {
+             l->data=GetMemory(dir->length);
+             fseek(infile,dir->start,0);
+             fread(l->data,dir->length,1,infile);
+            }
 
-	for(n = 0; n < wad->num_entries; n++)
-		{
-		fread(dir,sizeof( struct directory),1,infile);
-/*		Printname(dir);
-		printf(" of size %lu at %lu.\n",dir->length,dir->start);	*/
-		dir++;
-		}
+           if (!dir->length && ( (dir->name[0]=='E' && dir->name[2]=='M' &&
+                dir->name[1]>='1' && dir->name[1]<='4' &&
+                dir->name[3]>='1' && dir->name[3]<='9' &&
+               !dir->name[4] ) || (
+                dir->name[0]=='M' && dir->name[1]=='A' &&
+                dir->name[2]=='P' &&
+		((dir->name[3]>='0' && dir->name[4]>'0') ||
+                 (dir->name[3]>'0' && dir->name[4]=='0')) &&
+                ((dir->name[3]<'3' && dir->name[4]<='9') ||
+		 (dir->name[3]=='3' && dir->name[4]<='2')) &&
+	        !dir->name[5] )))
+                   l->islevel=1;          /* Begin new level */
+           else
+             if (levelp && (
+	         !strncmp(dir->name,"THINGS",8) ||
+                 !strncmp(dir->name,"LINEDEFS",8) ||
+                 !strncmp(dir->name,"SIDEDEFS",8) ||
+                 !strncmp(dir->name,"VERTEXES",8) ||
+                 !strncmp(dir->name,"SECTORS",8) ) )
+               {                       /* Store in current level */
+                levelp->next=l;
+                levelp=l;
+                continue;
+               }
+             else
+               if (levelp && (
+	           !strncmp(dir->name,"SEGS",8) ||
+                   !strncmp(dir->name,"SSECTORS",8) ||
+                   !strncmp(dir->name,"NODES",8) ||
+                   !strncmp(dir->name,"BLOCKMAP",8) ||
+		   !strncmp(dir->name,"REJECT",8)  ) )
+                {    /* Ignore these since we're rebuilding them anyway */
+                 if (dir->length)
+                   free(l->data);
+                 free(l);
+                 continue;
+                }
+
+    /* Mark end of level and advance one main lump entry */
+
+           if (levelp && !(lumpp->data=lumpp->next))
+             lumpp->islevel=0;  /* Ignore oddly formed levels */
+
+           levelp=l->islevel ? l : NULL;
+           if (lumpp)
+             lumpp->next=l;
+           else
+             lumplist=l;
+           lumpp=l;
+        }
+   if (levelp)
+    {
+     if (!(lumpp->data=lumpp->next))
+       lumpp->islevel=0;  /* Ignore oddly formed levels */
+     lumpp->next=NULL;
+    }
+   fclose(infile);
 }
 
-/*- find the offset into the directory of a resource -----------------------*/
+/*- find the pointer to a resource -----------------------*/
 
-static __inline__ int FindDir(char *name)
+static struct lumplist *FindDir(char *name)
 {
-	struct directory *dir;
-	int n;
-
-	dir = direc;
-
-	for(n=0; n< wad->num_entries; n++)
-  	  if(strncmp(dir++->name,name,8) == 0) return n;
-	ProgError( "Cannot find %s", name);
-	return 0;
+        struct lumplist *l = current_level;
+        while (l && strncmp(l->dir->name,name,8))
+ 	  l=l->next;
+	return l;
 }
 
 /*- read the things from the wad file and place in 'things' ----------------*/
-
 static __inline__ void GetThings(void)
 {
-	int n;
+	struct lumplist *l;
 
-	n = FindDir("THINGS");
-	if(direc[n].length == 0) ProgError("Must have at least 1 thing");
-	num_things = (direc[n].length) / (sizeof( struct Thing));
-/*	printf("Allocating %lu bytes for %d things\n",direc[n].length,num_things);*/
-	things = GetMemory( direc[n].length);
-	fseek(infile,direc[n].start,0);
-	fread(things,direc[n].length,1,infile);
+	l = FindDir("THINGS");
+
+	if (!l || !(num_things = l->dir->length / sizeof( struct Thing)))
+  	   ProgError("Must have at least 1 Thing");
+
+       things = l->data;
 }
 
 /*- read the vertices from the wad file and place in 'vertices' ------------
     Rewritten by Lee Killough, to speed up performance                       */
 
+static struct lumplist *vertlmp;
+
 static __inline__ void GetVertexes(void)
 {
 	long n,used_verts,i;
         int *translate;
+        struct lumplist *l;
+	l = FindDir("VERTEXES");
 
-	n = FindDir("VERTEXES");
-
-	if(direc[n].length == 0)
+	if(!l || !(num_verts = l->dir->length / sizeof(struct Vertex)))
 	  ProgError("Couldn't find any Vertices");
 
-	fseek(infile,direc[n].start,0);
+        vertlmp = l;
 
-	num_verts = (direc[n].length) / (sizeof( struct Vertex));
+	vertices = l->data;
 
-	vertices = GetMemory(sizeof(struct Vertex)*num_verts);
         translate = GetMemory(num_verts*sizeof(*translate));
-
-	fread(vertices,direc[n].length,1,infile);
 
         for (n=0;n<num_verts;n++)     /* Unmark all vertices */
           translate[n]= -1;
@@ -393,7 +468,6 @@ static __inline__ void GetVertexes(void)
   	  else
 	    printf("Vertex [%d] not used.\n",n);
 */
-
         for (n=0;n<num_lines;n++)     /* Renumber vertices */
          {
           int s=translate[linedefs[n].start];
@@ -406,53 +480,57 @@ static __inline__ void GetVertexes(void)
 
  	free(translate);
 
-	printf("Loaded %ld vertices, but %ld were unused.\n%ld zero-length lines were removed.\n",
-	       num_verts,num_verts-used_verts,i);
+	printf("Loaded %ld vertices",num_verts);
+	if (num_verts>used_verts)
+	  printf(", but %ld were unused.",num_verts-used_verts);
+	printf(i ? "%ld zero-length lines were removed.\n" : "\n",i);
 	num_verts = used_verts;
+	if(!num_verts)
+	  ProgError("Couldn't find any used Vertices");
+
 }
 
 /*- read the linedefs from the wad file and place in 'linedefs' ------------*/
 
 static __inline__ void GetLinedefs(void)
 {
-	int n;
+        struct lumplist *l;
 
-	n = FindDir("LINEDEFS");
-	if(direc[n].length == 0) ProgError("Couldn't find any Linedefs");
-	num_lines = (direc[n].length) / (sizeof( struct LineDef));
-/*	printf("Allocating %lu bytes for %d Linedefs\n",direc[n].length,num_lines);*/
-	linedefs = GetMemory( direc[n].length);
-	fseek(infile,direc[n].start,0);
-	fread(linedefs,direc[n].length,1,infile);
+	l = FindDir("LINEDEFS");
+
+	if(!l || !(num_lines = l->dir->length / sizeof(struct LineDef)))
+	  ProgError("Couldn't find any Linedefs");
+
+	linedefs = l->data;
 }
 
 /*- read the sidedefs from the wad file and place in 'sidedefs' ------------*/
 
 static __inline__ void GetSidedefs(void)
 {
-	int n;
 
-	n = FindDir("SIDEDEFS");
-	if(direc[n].length == 0) ProgError("Couldn't find any Sidedefs");
-	num_sides = (direc[n].length) / (sizeof( struct SideDef));
-/*	printf("Allocating %lu bytes for %d Sidedefs\n",direc[n].length,num_sides);*/
-	sidedefs = GetMemory( direc[n].length);
-	fseek(infile,direc[n].start,0);
-	fread(sidedefs,direc[n].length,1,infile);
+	struct lumplist *l;
+
+	l = FindDir("SIDEDEFS");
+
+	if (!l || !(num_sides = l->dir->length / sizeof(struct SideDef)))
+	   ProgError("Couldn't find any Sidedefs");
+
+	sidedefs = l->data;
 }
 
-/*- read the sectors from the wad file and place in 'sectors' ------------*/
+/*- read the sectors from the wad file and place count in 'num_sectors' ----*/
 
 static __inline__ void GetSectors(void)
 {
-	int n;
+	struct lumplist *l;
 
-	n = FindDir("SECTORS");
-	num_sects = (direc[n].length) / (sizeof( struct Sector));
-/*	printf("Allocating %lu bytes for %d Sectors\n",direc[n].length,num_sects);*/
-	sectors = GetMemory( direc[n].length);
-	fseek(infile,direc[n].start,0);
-	fread(sectors,direc[n].length,1,infile);
+	l = FindDir("SECTORS");
+
+	if (!l || !(num_sects = l->dir->length / sizeof(struct Sector)))
+	   ProgError("Couldn't find any Sectors");
+
+	sectors = l->data;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -590,16 +668,65 @@ static void ReverseNodes(struct Node *tn)
 	tn->node_num = num_pnodes++;
 }
 
+/* Add a lump to current level
+   by Lee Killough */
+
+static void add_lump(const char *name, void *data, size_t length)
+{
+ struct lumplist *l;
+ struct directory *dir;
+
+ l = current_level;
+ while (l->next)
+   l=l->next;
+
+ l->next = GetMemory(sizeof(*l));
+ l = l->next;
+ l->dir = dir = GetMemory(sizeof(struct directory));
+ strncpy(dir->name,name,8);
+ dir->length=length;
+ l->islevel=0;
+ l->data=data;
+ l->next=NULL;
+}
+
+static void sortlump(struct lumplist **link)
+{
+ static const char *const lumps[10]={"THINGS", "LINEDEFS", "SIDEDEFS",
+  "VERTEXES", "SEGS", "SSECTORS", "NODES", "SECTORS", "REJECT", "BLOCKMAP"};
+ int i=sizeof(lumps)/sizeof(*lumps)-1;
+ struct lumplist **l;
+ do
+   for (l=link;*l;l=&(*l)->next)
+     if (!strncmp(lumps[i],(*l)->dir->name,8))
+      {
+       struct lumplist *t=(*l)->next;
+       (*l)->next=*link;
+       *link=*l;
+       *l=t;
+       break;
+      }
+ while (--i>=0);
+}
+
+
 /*- Main Program -----------------------------------------------------------*/
 
 int main(int argc,char *argv[])
 {
-	long dir_start = 12;									/* Skip Pwad header*/
+#if 0
+	long dir_start = 12;		/* Skip Pwad header*/
 	long dir_entries = 0;
-
 	unsigned char *data;
+#endif
 
-	printf("* Doom BSP node builder ver 1.5x (c) 1996 Colin Reed (creed@graymatter.on.ca) *\n");
+        struct lumplist *lump,*l;
+        struct directory *newdirec;
+
+        setbuf(stdout,NULL);
+
+	printf("* Doom BSP node builder ver 2.0 (c) 1997 Colin Reed (creed@graymatter.on.ca) *\n");
+
         if (argc>=2 && !strcmp(argv[1],"-factor") && (argc-=2))
          {
           char *end;
@@ -607,6 +734,7 @@ int main(int argc,char *argv[])
           f=strtol(*(argv+=2),&end,0);
           factor=f>0 && !*end ? f : 0;
          }
+
 	if(argc<2 || argc>3 || factor<=0)
 		{
 		printf("\nThis Node builder was created from the basic theory stated in DEU5 (OBJECTS.C)\n"
@@ -614,25 +742,50 @@ int main(int argc,char *argv[])
 		       "Matt Fell      (msfell@aol.com) for the Doom Specs.\n"
 		       "Raphael Quinet (Raphael.Quinet@eed.ericsson.se) for DEU and the original idea.\n"
 		       "Mark Harrison  (harrison@lclark.edu) for finding a bug in 1.1x\n"
-                       "Lee Killough   (killough@convex.com) for performance tuning\n"
-		       "\nUsage: BSP [-factor nnn] name.wad {output.wad}\n"
+                       "Lee Killough   (killough@rsn.hp.com) for tuning speed and multilevel support\n"
+		       "\nUsage: BSP [-factor <nnn>] input.wad [<output.wad>]\n"
 		       "     : (If no output.wad is specified, TMP.WAD is written)\n"
 		       );
-		exit(0);
+		exit(1);
 		}
 
 	testwad = argv[1];									/* Get input name*/
 	if(argc == 3) outwad = argv[2];					/* Get output name*/
 	else outwad = "tmp.wad";
 
-	OpenWadFile(testwad);								/* Opens and reads directory*/
-	GetThings();											/* of wad file*/
+	OpenWadFile(testwad);						/* Opens and reads directory*/
+
+     if((outfile = fopen(outwad,"wb")) == NULL)
+ 	 {
+          fputs("Error: Could not open output PWAD file ",stderr);
+	  perror(outwad);
+	  exit(1);
+	 }
+
+        printf("Creating nodes using tunable factor of %d\n",factor);
+
+        for (lump=lumplist; lump; lump=lump->next)
+         if (lump->islevel)
+           {
+            struct Seg *tsegs;
+            static struct Node *nodelist;
+
+            current_level=lump->data;
+            printf("\nBuilding nodes on %-.8s\n\n",lump->dir->name);
+
+	blockptrs=NULL;
+        blocklists=NULL;
+        blockptrs_size=0;
+        num_ssectors=0;
+        num_psegs=0;
+	num_nodes = 0;
+
+        GetThings();
 	GetLinedefs();											/* Get linedefs and vertices*/
 	GetVertexes();											/* and delete redundant.*/
 	GetSidedefs();
- 	GetSectors();
+        GetSectors();
 
-	num_tsegs = 0;
 	tsegs = CreateSegs();		  						/* Initially create segs*/
 
 	FindLimits(tsegs);									/* Find limits of vertices*/
@@ -644,9 +797,6 @@ int main(int argc,char *argv[])
 
 	printf("Map goes from (%d,%d) to (%d,%d)\n",lminx,lminy,lmaxx,lmaxy);
 
-        printf("Creating nodes using tunable factor of %d\n",factor);
-
-	num_nodes = 0;
 	nodelist = CreateNode(tsegs);						/* recursively create nodes*/
 	printf("%lu NODES created, with %lu SSECTORS.\n",num_nodes,num_ssectors);
 
@@ -655,100 +805,91 @@ int main(int argc,char *argv[])
 	pnode_indx = 0;
 	ReverseNodes(nodelist);
 
-	dir_entries++;											/* Skip level number*/
-
-	things_start = dir_start;
-	dir_start = dir_start + (sizeof(struct Thing)*num_things);
-	direc[dir_entries].start = things_start;
-	direc[dir_entries].length = (sizeof(struct Thing)*num_things);
-	dir_entries++;
-
-	linedefs_start = dir_start;
-	dir_start = dir_start + (sizeof(struct LineDef)*num_lines);
-	direc[dir_entries].start = linedefs_start;
-	direc[dir_entries].length = (sizeof(struct LineDef)*num_lines);
-	dir_entries++;
-
-	sidedefs_start = dir_start;
-	dir_start = dir_start + (sizeof(struct SideDef)*num_sides);
-	direc[dir_entries].start = sidedefs_start;
-	direc[dir_entries].length = (sizeof(struct SideDef)*num_sides);
-	dir_entries++;
-
 	printf("Found %lu used vertices\n",num_verts);
 
-	vertices_start = dir_start;
-	dir_start = dir_start + (sizeof(struct Vertex)*num_verts);
-	direc[dir_entries].start = vertices_start;
-	direc[dir_entries].length = (sizeof(struct Vertex)*num_verts);
-	dir_entries++;
+        vertlmp->dir->length=num_verts * sizeof(struct Vertex);
+        vertlmp->data=vertices;
 
-	segs_start = dir_start;
-	dir_start = dir_start + (sizeof(struct Pseg)*num_psegs);
-	direc[dir_entries].start = segs_start;
-	direc[dir_entries].length = (sizeof(struct Pseg)*num_psegs);
-	dir_entries++;
+        add_lump("SEGS", psegs, sizeof(struct Pseg)*num_psegs);
 
-	ssectors_start = dir_start;
-	dir_start = dir_start + (sizeof(struct SSector)*num_ssectors);
-	direc[dir_entries].start = ssectors_start;
-	direc[dir_entries].length = (sizeof(struct SSector)*num_ssectors);
-	dir_entries++;
+        add_lump("SSECTORS", ssectors, sizeof(struct SSector)*num_ssectors);
 
-	pnodes_start = dir_start;
-	dir_start = dir_start + (sizeof(struct Pnode)*num_pnodes);
-	direc[dir_entries].start = pnodes_start;
-	direc[dir_entries].length = (sizeof(struct Pnode)*num_pnodes);
-	dir_entries++;
+        add_lump("NODES", pnodes, sizeof(struct Pnode)*num_pnodes);
 
-	sectors_start = dir_start;
-	dir_start = dir_start + (sizeof(struct Sector)*num_sects);
-	direc[dir_entries].start = sectors_start;
-	direc[dir_entries].length = (sizeof(struct Sector)*num_sects);
-	dir_entries++;
+        {
+ 	 long reject_size = (num_sects*num_sects+7)/8;
+         void *data = GetMemory(reject_size);
+         memset(data,0,reject_size);
+         add_lump("REJECT", data, reject_size);
+        }
 
-	reject_size = (num_sects*num_sects+7)/8;
-	data = calloc(reject_size,1);
-	reject_start = dir_start;
-	dir_start+=reject_size;
-	direc[dir_entries].start = reject_start;			/* Skip reject map*/
-	direc[dir_entries].length = reject_size;
-	dir_entries++;
+        {
+ 	 long blockmap_size = CreateBlockmap();
+         char *data=GetMemory(blockmap_size+blockptrs_size+8);
+         memcpy(data,&blockhead,8);
+         memcpy(data+8,blockptrs,blockptrs_size);
+         memcpy(data+8+blockptrs_size,blocklists,blockmap_size);
+         free(blockptrs);
+         free(blocklists);
+         add_lump("BLOCKMAP",data,blockmap_size+blockptrs_size+8);
+        }
+       puts("Completed blockmap building");
 
-	blockmap_size = CreateBlockmap();
+      }  /* if (lump->islevel) */
 
-	blockmap_start = dir_start;
-	dir_start = dir_start + (blockmap_size+blockptrs_size+8);
-	direc[dir_entries].start = blockmap_start;
-	direc[dir_entries].length = (blockmap_size+blockptrs_size+8);
-	dir_entries++;
 
-	printf("Completed blockmap building and saved PWAD as %s\n",outwad);
-
-	if((outfile = fopen(outwad,"wb")) == NULL)
-		{
-      printf("Error: Could not open output PWAD file %s", outwad);
-		exit(0);
-		}
-	fwrite(wad,4,1,outfile);
-	fwrite(&dir_entries,sizeof(long),1,outfile);
-	fwrite(&dir_start,sizeof(long),1,outfile);
-	fwrite(things,(sizeof(struct Thing)*num_things),1,outfile);
-	fwrite(linedefs,(sizeof(struct LineDef)*num_lines),1,outfile);
-	fwrite(sidedefs,(sizeof(struct SideDef)*num_sides),1,outfile);
-	fwrite(vertices,(sizeof(struct Vertex)*num_verts),1,outfile);
-	fwrite(psegs,(sizeof(struct Pseg)*num_psegs),1,outfile);
-	fwrite(ssectors,(sizeof(struct SSector)*num_ssectors),1,outfile);
-	fwrite(pnodes,(sizeof(struct Pnode)*num_pnodes),1,outfile);
-	fwrite(sectors,(sizeof(struct Sector)*num_sects),1,outfile);
-	fwrite(data,reject_size,1,outfile);
-	fwrite(&blockhead,(sizeof(struct Block)),1,outfile);
-	fwrite(blockptrs,blockptrs_size,1,outfile);
-	fwrite(blocklists,blockmap_size,1,outfile);
-	fwrite(direc,(sizeof(struct directory)*wad->num_entries),1,outfile);
-	fclose(outfile);
-
-	exit(0);
+     {
+      long offs=12;
+      wad.num_entries=0;
+      for (lump=lumplist; lump; lump=lump->next)
+       {
+        lump->dir->start=offs;
+        offs+=lump->dir->length;
+        wad.num_entries++;
+        if (lump->islevel)
+         {
+          sortlump((struct lumplist **) &lump->data);
+          for (l=lump->data; l; l=l->next)
+           {
+            l->dir->start=offs;
+            offs+=l->dir->length;
+            wad.num_entries++;
+           }
+         }
+       }
+     wad.dir_start=offs;
+     newdirec = GetMemory(wad.num_entries*sizeof(struct directory));
+     fwrite(&wad,12,1,outfile);
+     for (offs=0,lump=lumplist; lump; lump=lump->next)
+      {
+       if (ftell(outfile)!=lump->dir->start)
+         ProgError("File position consistency check failure writing %-.8s", lump->dir->name);
+       if (lump->dir->length)
+          fwrite(lump->data, lump->dir->length, 1, outfile);
+       else
+          lump->dir->start=0;
+       newdirec[offs++]=*lump->dir;
+       if (lump->islevel)
+         for (l=lump->data; l; l=l->next)
+          {
+           if (ftell(outfile)!=l->dir->start)
+             ProgError("File position consistency check failure writing %-.8s", l->dir->name);
+           if (l->dir->length)
+             fwrite(l->data, l->dir->length, 1, outfile);
+           else
+             l->dir->start=0;
+           newdirec[offs++]=*l->dir;
+          }
+      }
+     if (ftell(outfile)!=wad.dir_start)
+       ProgError("File position consistency check failure writing %-.8s", "lump dir");
+     fwrite(newdirec,sizeof(struct directory)*wad.num_entries,1,outfile);
+     fclose(outfile);
+     if (offs!=wad.num_entries)
+       ProgError("Lump directory count consistency check failure");
+     printf("\nSaved PWAD as %s\n",outwad);
+     exit(0);
+   }
 }
 
 /*- end of file ------------------------------------------------------------*/
