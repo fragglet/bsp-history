@@ -113,13 +113,42 @@ static __inline__ void DivideSegs(struct Seg *ts,struct Seg **rs,struct Seg **ls
 				if(val&68) add_to_rs = tmps;
 				if(val&1 && val&16)					/* On same line*/
 					{
-					if(tmps->flip == best->flip) add_to_rs = tmps;
-					if(tmps->flip != best->flip) add_to_ls = tmps;
+/* 06/01/97 Lee Killough: this fixes a bug ever since 1.2x,
+   probably 1.0, of BSP: when partitioning a parallel seg,
+   you must take its vertices' orientation into account, NOT the
+   flip bits, to determine which side of the partitioning line a
+   parallel seg should go on. If you simply flip the linedef in
+   question, you will be flipping both its vertices and sidedefs,
+   and the flip bits as well, even though the basic geometry has
+   not changed. Thus you need to use the vertices' orientation
+   (whether the seg is in the same direction or not, regardless
+   of its original linedef's being flipped or not), into account.
+
+   Originally, some segs were partitioned backwards, and if
+   it happened that there were different sectors on either
+   side of the seg being partitioned, it could leave holes
+   in space, causing either invisible barriers or disappearing
+   Things, because the ssector would be associated with the
+   wrong sector.
+
+   The old logic of tmps->flip != best->flip seems to rest on
+   the assumption that if two segs are parallel, they came
+   from the same linedef. This is clearly not always true.   */
+
+              /*  if (tmps->flip != best->flip)   old logic -- wrong!!! */
+
+              /* We know the segs are parallel or nearly so, so take their
+                 dot product to determine their relative orientation. */
+
+		if ( (lsx-lex)*pdx + (lsy-ley)*pdy < 0)
+  	         add_to_ls = tmps;
+	 	else
+		 add_to_rs = tmps;
 					}
 				}
 			}
 		else add_to_rs = tmps;						/* This is the partition line*/
-		
+
 /*		printf("Val = %X\n",val);*/
 
 		if(add_to_rs)							/* CHECK IF SHOULD ADD RIGHT ONE */
@@ -224,9 +253,12 @@ static __inline__ int IsItConvex( struct Seg *ts)
                                 linedefs[ts->linedef].sidedef1].sector;
    if (sectors[sector].tag < 900)
      while ((line=line->next)!=0)
-       if (sidedefs[line->flip ? linedefs[line->linedef].sidedef2 :
-         linedefs[line->linedef].sidedef1].sector != sector)
+      {
+       int ts=sidedefs[line->flip ? linedefs[line->linedef].sidedef2 :
+                                    linedefs[line->linedef].sidedef1].sector;
+       if (ts != sector && sectors[ts].tag < 900)
            return TRUE;
+      }
 
    /* all of the segs must be on the same side all the other segs */
 

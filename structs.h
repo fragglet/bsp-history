@@ -85,7 +85,7 @@ struct Seg
    unsigned short dist; /* distance from starting point */
 	struct Seg *next;
         long tmpdist;   /* Temporary distance */
-        short psx,psy,pex,pey;
+        short psx,psy,pex,pey;  /* Start, end coordinates */
 };
 
 struct Pseg

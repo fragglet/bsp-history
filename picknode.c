@@ -20,21 +20,21 @@
 
 static int factor=2*FACTOR+1;
 
-static __inline__ struct Seg *PickNode(struct Seg *ts)
+static struct Seg *PickNode(struct Seg *ts)
 {
- struct Seg *best=ts;	         /* Set best to first (failsafe measure)*/
- int bestgrade=~(1<<(8*sizeof(int)-1));  /* Portable definition of INT_MAX */
+ struct Seg *best=ts;
+ unsigned long bestcost=~0ul;
  struct Seg *part;
- int cnt;
+ int cnt=0;
 
- for (cnt=0,part=ts;part;part=part->next,cnt++) /* Count once and for all */
+ for (part=ts;part;part=part->next,cnt++) /* Count once and for all */
   {
-   double dx=(long) (part->psx = vertices[part->start].x)
-                  - (part->pex = vertices[part->end].x);
-   double dy=(long) (part->psy = vertices[part->start].y)
-                  - (part->pey = vertices[part->end].y);
-   if (! (part->tmpdist=sqrt(dx*dx+dy*dy)))
-     ProgError("Trouble in PickNode dx, dy");
+    double dx=(long) (part->psx = vertices[part->start].x)
+                   - (part->pex = vertices[part->end].x);
+    double dy=(long) (part->psy = vertices[part->start].y)
+                   - (part->pey = vertices[part->end].y);
+    if (! (part->tmpdist=sqrt(dx*dx+dy*dy)))
+      ProgError("Trouble in PickNode dx, dy");
   }
 
  for (part=ts;part;part = part->next)	/* Use each Seg as partition*/
@@ -46,17 +46,16 @@ static __inline__ struct Seg *PickNode(struct Seg *ts)
    long ptmp = pdx*psy-psx*pdy;		/* Used to decrease arithmetic */
                                         /* inside the inner loop       */
    struct Seg *check;
-   int partflip=part->flip;
-   int tot=cnt,grade=cnt,diff=cnt*2;    /* cnt computed before loops */
+   unsigned long cost=0;
+   int tot=0,diff=cnt;
 
    progress();           	        /* Something for the user to look at.*/
 
    for (check=ts;check;check=check->next) /* Check partition against all Segs*/
     {
         /*     get state of lines' relation to each other    */
-
-     register long a=pdx * check->psy - pdy * check->psx - ptmp;
-     register long b=pdx * check->pey - pdy * check->pex - ptmp;
+     long a=pdx * check->psy - pdy * check->psx - ptmp;
+     long b=pdx * check->pey - pdy * check->pex - ptmp;
 
      if ((a^b) < 0)
        if (a && b)
@@ -65,33 +64,43 @@ static __inline__ struct Seg *PickNode(struct Seg *ts)
 	 long d=a*l/(a-b);          /* How far from start the intersection is */
 	 if (d >= 2)                /* Only consider >=2 ; dist<2 is special */
 	  {
-	   grade+=factor;
-	   if (grade > bestgrade)   /* This is the heart of my pruning idea - */
+           cost += factor;
+
+        /* If the linedef associated with this seg has a sector tag >= 900,
+           treat it as precious; i.e. don't split it unless all other options
+           are exhausted. This is used to protect deep water and invisible
+           lifts/stairs from being messed up accidentally by splits. */
+
+           if (linedefs[check->linedef].tag >= 900)
+	     cost += factor*64;
+
+	   if (cost > bestcost)     /* This is the heart of my pruning idea - */
 	     goto prune;            /* it catches bad segs early on. Killough */
-	   tot++;
+
+           tot++;
 	  }
 	 else                       /* Distance from start is less than 2; */
-           if (l-d < 2 ? check->flip != partflip : b < 0)
+           if (l-d < 2 ? (check->psx-check->pex)*pdx +
+                         (check->psy-check->pey)*pdy < 0 : b < 0)
              diff-=2;               /* Check distance from end */
-	}
+        }
        else
          diff-=2;
      else
-       if (a<=0 && (a!=0 || (check->flip!=partflip && b<=0)))
+       if (a<=0 && (a || (!b && (check->psx-check->pex)*pdx +
+                                (check->psy-check->pey)*pdy < 0 )))
          diff-=2;
     }
 
-   diff-=tot;
+   if ((diff-=tot) < 0) /* Take absolute value. diff is being used to obtain the */
+     diff= -diff;       /* min/max values by way of: min(a,b)=(a+b-abs(a-b))/2   */
 
-   if (diff < 0)        /* Take absolute value. diff is being used to obtain the */
-     diff= -diff;       /* min/max values by way of: max(a,b)=(a+b+abs(a-b))/2   */
-
-   if (diff < tot)	/* Make sure at least one Seg is*/
-    {		        /* on either side of the partition*/
-     grade+=diff;
-     if (grade < bestgrade)
+   if ((tot+=cnt) > diff) /* Make sure at least one Seg is*/
+    {		          /* on either side of the partition*/
+     cost+=diff;
+     if (cost < bestcost)
       {
-       bestgrade = grade;
+       bestcost = cost;
        best = part;	/* and remember which Seg*/
       }
     }
@@ -107,7 +116,7 @@ prune:;                 /* early exit and skip past the tests above */
 
 static __inline__ void ComputeIntersection(short int *outx,short int *outy)
 {
-	double a,b,a2,b2,l2,w,d,z;
+	double a,b,a2,b2,l2,w,d;
 
 	long dx,dy,dx2,dy2;
 
@@ -117,31 +126,37 @@ static __inline__ void ComputeIntersection(short int *outx,short int *outy)
 	dy2 = ley - lsy;
 
 	if (dx == 0 && dy == 0) ProgError("Trouble in ComputeIntersection dx,dy");
-/*	l = (long)sqrt((float)((dx*dx) + (dy*dy)));  unnecessary - killough */
+/*	l = (long)sqrt((double)((dx*dx) + (dy*dy)));  unnecessary - killough */
 	if(dx2 == 0 && dy2 == 0) ProgError("Trouble in ComputeIntersection dx2,dy2");
-	l2 = (long)sqrt((float)((dx2*dx2) + (dy2*dy2)));
+	l2 = (long)sqrt((double)((dx2*dx2) + (dy2*dy2)));
 
 	a = dx /* / l */;  /* no normalization of a,b necessary,   */
 	b = dy /* / l */;  /* since division by d in formula for w */
 	a2 = dx2 / l2;     /* cancels it out. */
 	b2 = dy2 / l2;
 	d = b * a2 - a * b2;
-	w = lsx;
-	z = lsy;
-	if(d != 0.0)
+	if (d)
 		{
-		w = (((a*(lsy-psy))+(b*(psx-lsx))) / d);
+		w = ((a*(lsy-psy))+(b*(psx-lsx))) / d;
 
 /*		printf("Intersection at (%f,%f)\n",x2+(a2*w),y2+(b2*w));*/
 
 		a = lsx+(a2*w);
 		b = lsy+(b2*w);
-		modf((float)(a)+ ((a<0)?-0.5:0.5) ,&w);
-		modf((float)(b)+ ((b<0)?-0.5:0.5) ,&z);
+                *outx=(a<0) ? -(int)(.5-a) : (int)(.5+a);
+                *outy=(b<0) ? -(int)(.5-b) : (int)(.5+b);
+/*
+		modf(a + ((a<0)?-0.5:0.5) ,&w);
+		modf(b + ((b<0)?-0.5:0.5) ,&d);
+                *outx = w;
+                *outy = d;
+*/
 		}
-
-	*outx = w;
-	*outy = z;
+              else
+               {
+         	*outx = lsx;
+        	*outy = lsy;
+               }
 }
 
 /*---------------------------------------------------------------------------*

@@ -1,6 +1,6 @@
 /*- BSP.C -------------------------------------------------------------------*
 
- Node builder for DOOM levels (c) 1997 Colin Reed, version 2.0 (dos extended)
+ Node builder for DOOM levels (c) 1997 Colin Reed, version 2.1 (dos extended)
 
  Performance increased 200% over 1.2x
 
@@ -244,6 +244,8 @@ static __inline__ struct Seg *CreateSegs()
 
 		if(linedefs[n].sidedef1 != -1)
 			{														/* create normal seg*/
+                        if (sidedefs[linedefs[n].sidedef1].sector==-1)
+                          printf("\nWarning: Linedef %d has no sector referenced in right sidedef (Z_CheckHeap)\n\n",n);
 			ts = GetMemory( sizeof( struct Seg));		/* get mem for Seg*/
 			if(cs)
 				{
@@ -261,14 +263,21 @@ static __inline__ struct Seg *CreateSegs()
 /*			printf("%d,%d\n",fv,tv);*/
 			dx = (vertices[tv].x-vertices[fv].x);
 			dy = (vertices[tv].y-vertices[fv].y);
-			cs->angle = ComputeAngle(dx,dy);
+  		        cs->angle = ComputeAngle(dx,dy);
+                        if (linedefs[n].tag==999)
+                           cs->angle=(cs->angle + (unsigned)(sidedefs[linedefs[n].sidedef1].xoff*(65536.0/360.0))) & 65535u;
 			cs->linedef = n;
 			cs->dist = 0;
 			cs->flip = 0;
 /*			num_tsegs++; */
 			}
+                   else
+                     printf("\nWarning: Linedef %d has no right sidedef\n\n",n);
+
 		if(linedefs[n].sidedef2 != -1)
 			{														/* create flipped seg*/
+                        if (sidedefs[linedefs[n].sidedef2].sector==-1)
+                          printf("\nWarning: Linedef %d has no sector referenced in left sidedef (Z_CheckHeap)\n\n",n);
 			ts = GetMemory( sizeof( struct Seg));		/* get mem for Seg*/
 			if(cs)
 				{
@@ -285,7 +294,9 @@ static __inline__ struct Seg *CreateSegs()
 			cs->end = fv;
 			dx = (vertices[fv].x-vertices[tv].x);
 			dy = (vertices[fv].y-vertices[tv].y);
-			cs->angle = ComputeAngle(dx,dy);
+  		        cs->angle = ComputeAngle(dx,dy);
+                        if (linedefs[n].tag==999)
+                           cs->angle=(cs->angle + (unsigned)(sidedefs[linedefs[n].sidedef2].xoff*(65536.0/360.0))) & 65535u;
 			cs->linedef = n;
 			cs->dist = 0;
 			cs->flip = 1;
@@ -309,12 +320,13 @@ static __inline__ void OpenWadFile(char *filename)
  FILE *infile;
 
 	if(!(infile = fopen(filename,"rb")))
- 	{
-         fprintf(stderr,"Error: Cannot find WAD file %s\n", filename);
-	 exit(1);
-	}
+          ProgError("Error: Cannot open WAD file %s", filename);
 
-	fread(&wad,sizeof(wad),1,infile);
+ 	if (fread(&wad,1,sizeof(wad),infile)!=sizeof(wad) ||
+           (wad.type[0]!='I' && wad.type[0]!='P') ||
+	    wad.type[1]!='W' || wad.type[2]!='A' ||
+            wad.type[3]!='D')
+            ProgError("%s does not appear to be a wad file -- bad magic", filename);
 
 	printf("Opened %cWAD file : %s. %lu dir entries at 0x%lX.\n",
 		wad.type[0],filename,wad.num_entries,wad.dir_start);
@@ -709,7 +721,6 @@ static void sortlump(struct lumplist **link)
  while (--i>=0);
 }
 
-
 /*- Main Program -----------------------------------------------------------*/
 
 int main(int argc,char *argv[])
@@ -722,20 +733,18 @@ int main(int argc,char *argv[])
 
         struct lumplist *lump,*l;
         struct directory *newdirec;
-
         setbuf(stdout,NULL);
 
-	printf("* Doom BSP node builder ver 2.0 (c) 1997 Colin Reed (creed@graymatter.on.ca) *\n");
+	printf("* Doom BSP node builder ver 2.1 (c) 1997 Colin Reed (creed@graymatter.on.ca) *\n");
 
         if (argc>=2 && !strcmp(argv[1],"-factor") && (argc-=2))
          {
           char *end;
-          long f;
-          f=strtol(*(argv+=2),&end,0);
-          factor=f>0 && !*end ? f : 0;
+          factor=strtol(*(argv+=2),&end,0);
+          if (*end) factor=-1;
          }
 
-	if(argc<2 || argc>3 || factor<=0)
+	if(argc<2 || argc>3 || factor<0)
 		{
 		printf("\nThis Node builder was created from the basic theory stated in DEU5 (OBJECTS.C)\n"
 		       "\nCredits should go to :-\n"
@@ -754,7 +763,6 @@ int main(int argc,char *argv[])
 	else outwad = "tmp.wad";
 
 	OpenWadFile(testwad);						/* Opens and reads directory*/
-
      if((outfile = fopen(outwad,"wb")) == NULL)
  	 {
           fputs("Error: Could not open output PWAD file ",stderr);

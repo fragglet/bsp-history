@@ -1,8 +1,40 @@
-This is BSP version 2.0 dos extended, written by Colin Reed:
+This is BSP version 2.1 dos extended, written by Colin Reed:
 creed@graymatter.on.ca.
 
 Please send all comments and/or questions about BSP to Lee Killough
 (killough@rsn.hp.com), since Colin Reed is too busy now.
+
+-----------------------------------------------------------
+Changes in 2.1x:
+
+Lee Killough 06/03/97
+
+Fixed design bug which caused invisible barriers or
+disappearing Things. Problem was in how segs parallel
+to a partitioning node line were partitioned -- they were
+partitioned according to sidedef, rather than vertex,
+orientation w.r.t. the node line. Flipping the affected
+seg's linedef usually fixed the problem. Now a parallel
+seg is properly partitioned either on the left or right
+side of a node line depending on whether the two segs are
+in the same direction or not, not whether they are both
+flipped or not.
+
+Credit should go to Jan Van der Veken <h5019065@khk.be>, 
+for providing me with a demo wad which clearly illustrated 
+the disappearing Things bug.
+
+Added special effects features:
+
+If a linedef has a sector tag >= 900, then it is treated
+as "precious" and will not be split unless absolutely
+necessary. This is good to use around borders of deep
+water, invisible stairs, etc.
+
+Furthermore, just for grins, if the linedef's tag is 999,
+then the sidedefs' x-offsets set an angle adjustment in
+degrees to be applied -- you can look straight at a wall,
+but it might come right at you on both sides and "stretch".
 
 -----------------------------------------------------------
 

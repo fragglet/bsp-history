@@ -6,11 +6,14 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <math.h>
+
 #if defined(MSDOS) || defined(__MSDOS__)
 #include <dos.h>
 #endif
 #ifdef __TURBOC__
 #include <alloc.h>
+#endif
+#ifndef GCC
 #define __INLINE__
 #endif
 
