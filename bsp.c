@@ -1,16 +1,18 @@
 /*- BSP.C -------------------------------------------------------------------*
 
- Node builder for DOOM levels, still only version 0.9, so not totally finished
- but, seems to be doing pretty well, for about a weeks work!
- Credit to Raphael Quinet (Some of the code has been modified from DEU).
+ Node builder for DOOM levels (c) 1994 Colin Reed, version 1.2 (dos extended)
+
+ Many thanks to Mark Harrison for finding a bug in 1.1 which caused some
+ texture align problems when a flipped SEG was split.
+
+ Credit to:-
+
+ Raphael Quinet (A very small amount of code has been borrowed from DEU).
+ Matt Fell for the doom specs.
+
  Also, the original idea for some of the techniques where also taken from the
  comment at the bottom of OBJECTS.C in DEU, and the doc by Matt Fell about
  the nodes.
-
- Also to Dylan Cuthbert, cos I am really shit at C, and maths.
- And Giles Goddard for helping with the which side checker.
-
- Any inquiries to Colin Reed via DYL@CIX.COMPULINK.CO.UK
 
  Use this code for your own editors, but please credit me.
 
@@ -128,7 +130,7 @@ int SplitDist(struct Seg *);
 void ReverseNodes(struct Node *);
 long CreateBlockmap(void);
 
-void progress(void);
+inline void progress(void);
 
 /*--------------------------------------------------------------------------*/
 
@@ -146,7 +148,7 @@ int main(int argc,char *argv[])
 	int n;
 	unsigned char *data;
 	
-	printf("** Doom BSP node builder ver 1.1x (c) 1994 Colin Reed **\n");
+	printf("** Doom BSP node builder ver 1.2x (c) 1994 Colin Reed **\n");
 
 	if(argc<2 || argc>3)
 		{
@@ -154,8 +156,7 @@ int main(int argc,char *argv[])
 		printf("\nCredits should go to :-\n");
 		printf("Matt Fell      (matt.burnett@acebbs.com) for the Doom Specs.\n");
 		printf("Raphael Quinet (quinet@montefiore.ulg.ac.be) for DEU and the original idea.\n");
-		printf("Dylan Cuthbert (dyl@cix.compulink.co.uk) for allowing the public to get hold\n");
-		printf("               of this program.\n");
+		printf("Mark Harrison  (harrison@lclark.edu) for finding a bug in 1.1x\n");
 		printf("\nUsage: BSP name.wad {output.wad}\n");
 		printf("     : (If no output.wad is specified, TMP.WAD is written)\n");
 		exit(0);
@@ -404,12 +405,24 @@ int SplitDist(struct Seg *ts)
 {
 	double t,dx,dy;
 	
-	dx = (double)(vertices[linedefs[ts->linedef].start].x)-(vertices[ts->start].x);
-	dy = (double)(vertices[linedefs[ts->linedef].start].y)-(vertices[ts->start].y);
+	if(ts->flip==0)
+		{
+		dx = (double)(vertices[linedefs[ts->linedef].start].x)-(vertices[ts->start].x);
+		dy = (double)(vertices[linedefs[ts->linedef].start].y)-(vertices[ts->start].y);
 
-	if(dx == 0 && dy == 0) printf("Trouble in SplitDist %f,%f\n",dx,dy);
-	t = sqrt((dx*dx) + (dy*dy));
-	return (int)t;
+		if(dx == 0 && dy == 0) printf("Trouble in SplitDist %f,%f\n",dx,dy);
+		t = sqrt((dx*dx) + (dy*dy));
+		return (int)t;
+		}
+	else
+		{
+		dx = (double)(vertices[linedefs[ts->linedef].end].x)-(vertices[ts->start].x);
+		dy = (double)(vertices[linedefs[ts->linedef].end].y)-(vertices[ts->start].y);
+
+		if(dx == 0 && dy == 0) printf("Trouble in SplitDist %f,%f\n",dx,dy);
+		t = sqrt((dx*dx) + (dy*dy));
+		return (int)t;
+		}
 }
 
 /*- get the directory from a wad file --------------------------------------*/
@@ -441,8 +454,8 @@ void OpenWadFile(char *filename)
 	for(n = 0; n < wad->num_entries; n++)
 		{
 		fread(dir,sizeof( struct directory),1,infile);
-/*		Printname(dir);*/
-/*		printf(" of size %lu at %lu.\n",dir->length,dir->start);*/
+/*		Printname(dir);
+		printf(" of size %lu at %lu.\n",dir->length,dir->start);	*/
 		dir++;
 		}
 }
@@ -491,12 +504,11 @@ void GetVertexes(void)
 				if(linedefs[t].start == i) linedefs[t].start = used_verts;
 				if(linedefs[t].end == i) linedefs[t].end = used_verts;
 				}
-			
 			used_verts++;
 			}
 		else
 			{
-/*			printf("Vertex [%d] not used.\n",i);*/
+/*			printf("Vertex [%d] not used.\n",i);            */
 			}
 		}
 	printf("Loaded %lu vertices, but %lu were unused.\n",num_verts,num_verts-used_verts);
@@ -735,14 +747,16 @@ void ReverseNodes(struct Node *tn)
 
 /*--------------------------------------------------------------------------*/
 
-void progress()
+inline void progress()
 {
 	char *s="/-\\|/-\\|";
 
 	if((pcnt&15) == 0)
 		{
+
 		printf("%c\b",s[((pcnt)/16)&7]);
 		fflush(stdout);
+
 		}
 	pcnt++;
 
