@@ -1,7 +1,4 @@
 /*- FUNCS.C ----------------------------------------------------------------*/
-
-#include "bsp.h"
-
 /*- terminate the program reporting an error -------------------------------*/
 
 void ProgError( char *errstr, ...)
@@ -36,25 +33,6 @@ void *ResizeMemory( void *old, size_t size)
    return ret;
 }
 
-/*- allocate memory from the far heap with error checking ------------------*/
-
-void huge *GetFarMemory( unsigned long size)
-{
-   void huge *ret = farmalloc( size);
-   if (!ret)
-      ProgError( "out of memory (cannot allocate %lu far bytes)", size);
-   return ret;
-}
-
-/*- reallocate memory from the far heap with error checking ----------------*/
-
-void huge *ResizeFarMemory( void huge *old, unsigned long size)
-{
-   void huge *ret = farrealloc( old, size);
-   if (!ret)
-      ProgError( "out of memory (cannot reallocate %lu far bytes)", size);
-   return ret;
-}
 
 /*--------------------------------------------------------------------------*/
 

@@ -1,13 +1,13 @@
 /*- Doom Structures .. Colin Reed 1994 -------------------------------------*/
 
-struct wad_header 					// Linked wad files list.
+struct wad_header 					/* Linked wad files list.*/
 {
 	char type[4];
 	long int num_entries;
 	long int dir_start;
 };
 
-struct directory 						// The directory entry header
+struct directory 						/* The directory entry header*/
 {
 	long int start;
 	long int length;
@@ -16,59 +16,59 @@ struct directory 						// The directory entry header
 
 struct Block
 {
-	int minx;
-	int miny;
-	int xblocks;
-	int yblocks;
+	short minx;
+	short miny;
+	short xblocks;
+	short yblocks;
 };
 
 /*- The level structures ---------------------------------------------------*/
 
 struct Thing
 {
-   int xpos;      /* x position */
-   int ypos;      /* y position */
-   int angle;     /* facing angle */
-   int type;      /* thing type */
-   int when;      /* appears when? */
+   short xpos;      /* x position */
+   short ypos;      /* y position */
+   short angle;     /* facing angle */
+   short type;      /* thing type */
+   short when;      /* appears when? */
 };
 
 struct Vertex
 {
-   int x;         /* X coordinate */
-   int y;         /* Y coordinate */
+   short int x;         /* X coordinate */
+   short int y;         /* Y coordinate */
 };
 
 struct LineDef
 {
-   int start;     /* from this vertex ... */
-   int end;       /* ... to this vertex */
-   int flags;     /* see NAMES.C for more info */
-   int type;      /* see NAMES.C for more info */
-   int tag;       /* crossing this linedef activates the sector with the same tag */
-   int sidedef1;  /* sidedef */
-   int sidedef2;  /* only if this line adjoins 2 sectors */
+   short int start;     /* from this vertex ... */
+   short int end;       /* ... to this vertex */
+   short int flags;     /* see NAMES.C for more info */
+   short int type;      /* see NAMES.C for more info */
+   short int tag;       /* crossing this linedef activates the sector with the same tag */
+   short int sidedef1;  /* sidedef */
+   short int sidedef2;  /* only if this line adjoins 2 sectors */
 };
 
 struct SideDef
 {
-   int xoff;      /* X offset for texture */
-   int yoff;      /* Y offset for texture */
+   short int xoff;      /* X offset for texture */
+   short int yoff;      /* Y offset for texture */
    char tex1[8];  /* texture name for the part above */
    char tex2[8];  /* texture name for the part below */
    char tex3[8];  /* texture name for the regular part */
-   int sector;    /* adjacent sector */
+   short int sector;    /* adjacent sector */
 };
 
 struct Sector
 {
-   int floorh;    /* floor height */
-   int ceilh;     /* ceiling height */
+   short int floorh;    /* floor height */
+   short int ceilh;     /* ceiling height */
    char floort[8];/* floor texture */
    char ceilt[8]; /* ceiling texture */
-   int light;     /* light level (0-255) */
-   int special;   /* special behaviour (0 = normal, 9 = secret, ...) */
-   int tag;       /* sector activated by a linedef with the same tag */
+   short int light;     /* light level (0-255) */
+   short int special;   /* special behaviour (0 = normal, 9 = secret, ...) */
+   short int tag;       /* sector activated by a linedef with the same tag */
 };
 
 /*--------------------------------------------------------------------------*/
@@ -77,57 +77,57 @@ struct Sector
 
 struct Seg
 {
-   int start;     /* from this vertex ... */
-   int end;       /* ... to this vertex */
-   unsigned angle;/* angle (0 = east, 16384 = north, ...) */
-   int linedef;   /* linedef that this seg goes along*/
-   int flip;      /* true if not the same direction as linedef */
-   unsigned dist; /* distance from starting point */
+   short int start;     /* from this vertex ... */
+   short int end;       /* ... to this vertex */
+   unsigned short angle;/* angle (0 = east, 16384 = north, ...) */
+   short int linedef;   /* linedef that this seg goes along*/
+   short int flip;      /* true if not the same direction as linedef */
+   unsigned short dist; /* distance from starting point */
 	struct Seg *next;
 };
 
 struct Pseg
 {
-   int start;     /* from this vertex ... */
-   int end;       /* ... to this vertex */
-   unsigned angle;/* angle (0 = east, 16384 = north, ...) */
-   int linedef;   /* linedef that this seg goes along*/
-   int flip;      /* true if not the same direction as linedef */
-   unsigned dist; /* distance from starting point */
+   short int start;     /* from this vertex ... */
+   short int end;       /* ... to this vertex */
+   unsigned short angle;/* angle (0 = east, 16384 = north, ...) */
+   short int linedef;   /* linedef that this seg goes along*/
+   short int flip;      /* true if not the same direction as linedef */
+   unsigned short dist; /* distance from starting point */
 };
 
 struct Node
 {
-   int x, y;									// starting point
-   int dx, dy;									// offset to ending point
-   int maxy1, miny1, minx1, maxx1;		// bounding rectangle 1
-   int maxy2, miny2, minx2, maxx2;		// bounding rectangle 2
-   int chright, chleft;						// Node or SSector (if high bit is set)
+   short int x, y;									/* starting point*/
+   short int dx, dy;									/* offset to ending point*/
+   short int maxy1, miny1, minx1, maxx1;		/* bounding rectangle 1*/
+   short int maxy2, miny2, minx2, maxx2;		/* bounding rectangle 2*/
+   short int chright, chleft;						/* Node or SSector (if high bit is set)*/
 	struct Node *nextr,*nextl;
-	int node_num;								// starting at 0 (but reversed when done)
+	short int node_num;								/* starting at 0 (but reversed when done)*/
 };
 
 struct Pnode
 {
-   int x, y;									// starting point
-   int dx, dy;									// offset to ending point
-   int maxy1, miny1, minx1, maxx1;		// bounding rectangle 1
-   int maxy2, miny2, minx2, maxx2;		// bounding rectangle 2
-   int chright, chleft;						// Node or SSector (if high bit is set)
+   short int x, y;									/* starting point*/
+   short int dx, dy;									/* offset to ending point*/
+   short int maxy1, miny1, minx1, maxx1;		/* bounding rectangle 1*/
+   short int maxy2, miny2, minx2, maxx2;		/* bounding rectangle 2*/
+   short int chright, chleft;						/* Node or SSector (if high bit is set)*/
 };
 
 struct SSector
 {
-   int num;       /* number of Segs in this Sub-Sector */
-   int first;     /* first Seg */
+   short int num;       /* number of Segs in this Sub-Sector */
+   short int first;     /* first Seg */
 };
 
 struct splitter
 {
-	int halfx;
-	int halfy;
-	int halfsx;
-	int halfsy;
+	short int halfx;
+	short int halfy;
+	short int halfsx;
+	short int halfsy;
 };
 
 /*--------------------------------------------------------------------------*/

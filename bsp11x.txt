@@ -1,0 +1,26 @@
+This is BSP version 1.1 dos extended, written by Colin Reed:
+colin@argonaut.com
+
+Converted to the GO32 dos extender by Dylan Cuthbert:
+dyl@cix.compulink.co.uk
+
+The GO32 dos extender has been pre-pended to the executable.
+
+This builds a BSP node tree for your DOOM wad files.
+
+Usage:
+
+BSP <input file> [<output file>]
+
+If no output file is specified 'tmp.wad' is written.
+
+-----------------------------------------------------------
+
+This ZIP includes the fullly commented source code for all you
+Doom editor/utility writers out there.
+
+-----------------------------------------------------------
+
+A known problem is a conflict between the GO32 dos extender
+and QEMM's DPMI... put 'set GO32=nodpmi' in your autoexec.bat
+to avoid problems.
