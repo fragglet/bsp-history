@@ -1,7 +1,23 @@
-This is BSP version 2.2 dos extended, written by Colin Reed, Lee Killough
+This is BSP version 2.3 dos extended, written by Colin Reed, Lee Killough
 
 Please send all comments and/or questions about BSP to Lee Killough
 (killough@rsn.hp.com).
+
+-----------------------------------------------------------
+Changes in 2.3x:
+
+Lee Killough 2/98:
+
+Fixed a minor bug which caused textures to bleed sometimes.
+Thanks to Jonathan Campbell (joncamp@tiac.net) for finding it.
+
+Switched from djgpp v1.12 to v2.01.
+
+Linux builds now supported (thanks to Andre Majorel for the port).
+
+Possible future enhancement:
+
+>64K blockmap support (requires changes in Doom source code as well).
 
 -----------------------------------------------------------
 Changes in 2.2x:

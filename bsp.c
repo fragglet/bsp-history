@@ -1,6 +1,6 @@
 /*- BSP.C -------------------------------------------------------------------*
 
- Node builder for DOOM levels (c) 1997 Colin Reed, version 2.2 (dos extended)
+ Node builder for DOOM levels (c) 1998 Colin Reed, version 2.3 (dos extended)
 
  Performance increased 200% over 1.2x
 
@@ -262,7 +262,9 @@ static void OpenWadFile(char *filename)
    if ((dir->name[0]=='E' && dir->name[2]=='M' &&
         dir->name[1]>='1' && dir->name[1]<='9' &&
         dir->name[3]>='1' && dir->name[3]<='9' &&
-        !dir->name[4] ) || (
+       (!dir->name[4] || (dir->name[4]>='0' &&
+                          dir->name[4]<='9' &&
+                         !dir->name[5])  )) || (
         dir->name[0]=='M' && dir->name[1]=='A' &&
         dir->name[2]=='P' && !dir->name[5] &&
         dir->name[3]>='0' && dir->name[3]<='9' &&
@@ -653,7 +655,11 @@ void usage(void)
         "Mark Harrison  (harrison@lclark.edu) for finding a bug in 1.1x\n"
         "Jim Flynn      (jflynn@pacbell.net) for many good ideas and encouragement.\n"
         "Jan Van der Veken for finding invisible barrier bug.\n"
-        "\nUsage: BSP [options] input.wad [<output.wad>]\n"
+#ifdef MSDOS
+        "\nUsage: BSP [options] input.wad [[-o] <output.wad>]\n"
+#else
+        "\nUsage: BSP [options] input.wad [-o <output.wad>]\n"
+#endif
         "       (If no output.wad is specified, TMP.WAD is written)\n\n"
         "Options:\n\n"
         "  -factor <nnn>  Changes the cost assigned to SEG splits\n"
@@ -668,19 +674,21 @@ void usage(void)
 
 static void parse_options(int argc, char *argv[])
 {
+ static char *fnames[2];
  static const struct {
    const char *option;
-   int *var,arg;
- } tab[]= { {"-vp", &visplane, FALSE},
-            {"-vpwarn", &visplane_warning, FALSE},
-            {"-warnvp", &visplane_warning, FALSE},
-            {"-noreject", &noreject, FALSE},
-            {"-vpmark", &mark_visplanes, FALSE},
-            {"-markvp", &mark_visplanes, FALSE},
-            {"-factor", &factor, TRUE},
-            {"-thold", &threshold, TRUE},
+   void *var;
+   enum {NONE, STRING, INT} arg;
+ } tab[]= { {"-vp", &visplane, NONE},
+            {"-vpwarn", &visplane_warning, NONE},
+            {"-warnvp", &visplane_warning, NONE},
+            {"-noreject", &noreject, NONE},
+            {"-vpmark", &mark_visplanes, NONE},
+            {"-markvp", &mark_visplanes, NONE},
+            {"-factor", &factor, INT},
+            {"-thold", &threshold, INT},
+            {"-o", fnames+1, STRING},
           };
- char *fnames[2]={NULL};
  int nf=0;
 
  while (--argc)
@@ -690,20 +698,24 @@ static void parse_options(int argc, char *argv[])
      for (;;)
        if (!strcmp(*argv,tab[--i].option))
         {
-         if (tab[i].arg)
-          {
+         if (tab[i].arg==INT)
            if (--argc)
             {
              char *end;
-             *tab[i].var=strtol(*++argv,&end,0);
+             *(int *) tab[i].var=strtol(*++argv,&end,0);
              if (*end || factor<0)
                usage();
             }
            else
              usage();
-          }
          else
-           ++*tab[i].var;
+	   if (tab[i].arg==STRING)
+	     if (--argc)
+	       *(char **) tab[i].var = *++argv;
+	     else
+	       usage();
+	   else
+	     ++*(int *) tab[i].var;
          break;
         }
        else
@@ -714,7 +726,11 @@ static void parse_options(int argc, char *argv[])
           }
     }
    else
+#ifdef MSDOS
      if (nf<2)
+#else
+     if (nf<1)
+#endif
        fnames[nf++]=*argv;
      else
        usage();
@@ -736,7 +752,7 @@ int main(int argc,char *argv[])
 
  setbuf(stdout,NULL);
 
- puts("* Doom BSP node builder ver 2.2 (c) 1997 Colin Reed, Lee Killough *");
+ puts("* Doom BSP node builder ver 2.3 (c) 1998 Colin Reed, Lee Killough *");
 
  parse_options(argc,argv);
 

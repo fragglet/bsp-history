@@ -1,8 +1,10 @@
+[See the web page below for the most up-to-date version. killough 2/23/98]
+
 The Facts about Visplane Overflows                               09/20/1997
 
 Lee Killough
 killough@rsn.hp.com
-http://www.trailerpark.com/tequila/killough/doom.html
+http://classicgaming.com/doom
 --------------------------------------------------------------------------
 
 Visplane overflows have long been a mystery (and a source of controversy)
@@ -300,4 +302,4 @@ work. I only wish I had done this two or three years ago...
 ----------------------------------------------------------------------------
 Lee Killough
 killough@rsn.hp.com
-http://www.trailerpark.com/tequila/killough/doom.html
+http://classicgaming.com/doom

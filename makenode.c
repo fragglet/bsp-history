@@ -256,7 +256,7 @@ static int IsItConvex(const struct Seg *ts)
        break;
       }
 
-   /* all of the segs must be <= 180 degrees apart */
+   /* all of the segs must be < 180 degrees apart */
 
    for (line=ts;line;line=line->next)
      for (check=ts;check;check=check->next) /* Check partition against all Segs*/
@@ -264,7 +264,17 @@ static int IsItConvex(const struct Seg *ts)
        long a = line->pdy * check->psx - line->pdx * check->psy + line->ptmp;
        long b = line->pdy * check->pex - line->pdx * check->pey + line->ptmp;
 
-       if ((a^b)>=0 ? a<0 : check->len*a/(a-b)>=2 && check->len*b/(b-a)>=2)
+       if ((a^b)>=0 ? a<0 || (!a && !b && check->pdx*line->pdx +
+			      check->pdy*line->pdy < 0 &&
+		      (check->linedef != line->linedef ||
+		       !(linedefs[line->linedef].flags & 4) || 
+		       linedefs[line->linedef].sidedef1==-1 || 
+		       *sidedefs[linedefs[line->linedef].sidedef1].tex3-'-' ||
+		       linedefs[line->linedef].sidedef2==-1 || 
+		       *sidedefs[linedefs[line->linedef].sidedef2].tex3-'-'
+		       )
+		      )
+	   : check->len*a/(a-b)>=2 && check->len*b/(b-a)>=2)
          return FALSE;
      }
   /* no need to split the list: these Segs can be put in a SSector */
