@@ -1,40 +1,66 @@
-This is BSP version 2.1 dos extended, written by Colin Reed:
-creed@graymatter.on.ca.
+This is BSP version 2.2 dos extended, written by Colin Reed, Lee Killough
 
 Please send all comments and/or questions about BSP to Lee Killough
-(killough@rsn.hp.com), since Colin Reed is too busy now.
+(killough@rsn.hp.com).
+
+-----------------------------------------------------------
+Changes in 2.2x:
+
+Lee Killough 10/97:
+
+Added -vp option to reduce the chances of visplane overflows, without loss
+of detail. Using -vp causes node line picker to choose node lines in a way
+that is empirically known to reduce or eliminate visplane overflows (see
+visplane.txt). No guarantees, though!!!
+
+Added -vpwarn option to warn about possible visplane overflows (see
+visplane.txt).
+
+-vpmark option also added, which leaves permanent marks in the form of player
+1 starts. It's a good idea to write to a separate output file when using this
+option!!!  You can then use an editor, play each alternate player start, and
+see if each one causes visplane overflows, and then remove it. Usually no-
+clipping must be used, at least to step out from the wall, since it inserts
+player starts without regard to collisions, and it uses walls as a basis for
+visplane calculations.
+
+Added -noreject option, to allow building nodes without messing up an
+already-built reject map.
+
+Added -thold option to change the visplane threshold. May be used to report
+more potential visplane overflows if the -vpwarn or -vpmark approximations
+estimate too few visplanes. Default threshold is 128.
+
+Changed the way level markers in the lump directory are handled, to
+accomodate DCK3.61, EdMap, and perhaps other editors. Some editors, such
+as DCK3.61, do not always set the length field in a level marker to 0, and
+EdMap requires that the offset field in a level marker be equal to the
+offset of the first resource.
 
 -----------------------------------------------------------
 Changes in 2.1x:
 
-Lee Killough 06/03/97
+Lee Killough 06/97
 
-Fixed design bug which caused invisible barriers or
-disappearing Things. Problem was in how segs parallel
-to a partitioning node line were partitioned -- they were
-partitioned according to sidedef, rather than vertex,
-orientation w.r.t. the node line. Flipping the affected
-seg's linedef usually fixed the problem. Now a parallel
-seg is properly partitioned either on the left or right
-side of a node line depending on whether the two segs are
-in the same direction or not, not whether they are both
-flipped or not.
-
-Credit should go to Jan Van der Veken <h5019065@khk.be>, 
-for providing me with a demo wad which clearly illustrated 
-the disappearing Things bug.
+Fixed design bug which caused invisible barriers or disappearing Things.
+Problem was in how segs incident to a partitioning node line were
+partitioned -- they were partitioned according to sidedef, rather than
+vertex, orientation w.r.t. the node line. Flipping the affected seg's
+linedef usually fixed the problem. Now an incident seg is properly
+partitioned either on the left or right side of a node line depending
+on whether the two segs are in the same direction or not, not whether
+they are both flipped or not.
 
 Added special effects features:
 
-If a linedef has a sector tag >= 900, then it is treated
-as "precious" and will not be split unless absolutely
-necessary. This is good to use around borders of deep
-water, invisible stairs, etc.
+If a linedef has a sector tag >= 900, then it is treated as "precious"
+and will not be split unless absolutely necessary. This is good to use
+around borders of deep water, invisible stairs, etc.
 
-Furthermore, just for grins, if the linedef's tag is 999,
-then the sidedefs' x-offsets set an angle adjustment in
-degrees to be applied -- you can look straight at a wall,
-but it might come right at you on both sides and "stretch".
+Furthermore, just for grins, if the linedef's tag is 999, then the sidedefs'
+x-offsets set an angle adjustment in degrees to be applied -- you can look
+straight at a wall, but it might come right at you on both sides and
+"stretch".
 
 -----------------------------------------------------------
 
@@ -145,7 +171,4 @@ Future enhancements (possibly, depending on demand):
 * Ability to specify level(s) to build separately
 
 * Reject map build
-
-* Automatic visplane overflow protection  (no, really!)
-
 

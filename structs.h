@@ -84,8 +84,10 @@ struct Seg
    short int flip;      /* true if not the same direction as linedef */
    unsigned short dist; /* distance from starting point */
 	struct Seg *next;
-        long tmpdist;   /* Temporary distance */
         short psx,psy,pex,pey;  /* Start, end coordinates */
+        long pdx,pdy,ptmp;      /* Used in intersection calculations */
+        long len;
+        short sector;
 };
 
 struct Pseg
@@ -104,9 +106,10 @@ struct Node
    short int dx, dy;									/* offset to ending point*/
    short int maxy1, miny1, minx1, maxx1;		/* bounding rectangle 1*/
    short int maxy2, miny2, minx2, maxx2;		/* bounding rectangle 2*/
-   short int chright, chleft;						/* Node or SSector (if high bit is set)*/
+   short int chright, chleft;				/* Node or SSector (if high bit is set)*/
 	struct Node *nextr,*nextl;
-	short int node_num;								/* starting at 0 (but reversed when done)*/
+	short int node_num;	        		/* starting at 0 (but reversed when done)*/
+        long ptmp;
 };
 
 struct Pnode
@@ -115,21 +118,13 @@ struct Pnode
    short int dx, dy;									/* offset to ending point*/
    short int maxy1, miny1, minx1, maxx1;		/* bounding rectangle 1*/
    short int maxy2, miny2, minx2, maxx2;		/* bounding rectangle 2*/
-   short int chright, chleft;						/* Node or SSector (if high bit is set)*/
+   short int chright, chleft;				/* Node or SSector (if high bit is set)*/
 };
 
 struct SSector
 {
    short int num;       /* number of Segs in this Sub-Sector */
    short int first;     /* first Seg */
-};
-
-struct splitter
-{
-	short int halfx;
-	short int halfy;
-	short int halfsx;
-	short int halfsy;
 };
 
 /*--------------------------------------------------------------------------*/

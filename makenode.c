@@ -15,184 +15,175 @@
  else put the segs into rights list.
 *---------------------------------------------------------------------------*/
 
-static __inline__ void DivideSegs(struct Seg *ts,struct Seg **rs,struct Seg **ls)
+static int DivideSegs(struct Seg *ts,struct Seg *best,struct Seg **rs,struct Seg **ls)
 {
-	struct Seg *rights,*lefts;
-	struct Seg *tmps,*best,*news,*prev;
+	struct Seg *rights=NULL,*lefts=NULL;
+	struct Seg *tmps,*news,*prev;
 	struct Seg *add_to_rs,*add_to_ls;
   	struct Seg *new_best=NULL,*new_rs,*new_ls;
+	struct Seg *strights=NULL,*stlefts=NULL;
 
-	struct Seg *strights,*stlefts;
-        int num_new=0;
+        *rs=*ls=NULL;
+
 /*
-	int num_secs_r,num_secs_l,last_sec_r,last_sec_l;
-	int num,least_splits,least;
-	int fv,tv,num_new = 0;
-	int bangle,cangle,cangle2,cfv,ctv,dx,dy;
+        printf("Picked linedef %d (%d,%d) (%d) as node line\n",
+        best->linedef, best->start, best->end, best->flip);
 */
-	short int x,y,val;
-
-	FindLimits(ts);							/* Find limits of this set of Segs*/
-#if 0
-	sp.halfsx = (lmaxx - lminx) / 2;		/* Find half width of Node*/
-	sp.halfsy = (lmaxy - lminy) / 2;
-	sp.halfx = lminx + sp.halfsx;			/* Find middle of Node*/
-	sp.halfy = lminy + sp.halfsy;
-#endif
-	best = PickNode(ts);						/* Pick best node to use.*/
-
-	if(best == NULL) ProgError("Couldn't pick nodeline!");
-
-	node_x = vertices[best->start].x;
-	node_y = vertices[best->start].y;
-	node_dx = vertices[best->end].x-vertices[best->start].x;
-	node_dy = vertices[best->end].y-vertices[best->start].y;
 
 /* When we get to here, best is a pointer to the partition seg.
-	Using this partition line, we must split any lines that are intersected
-	into a left and right half, flagging them to be put their respective sides
-	Ok, now we have the best line to use as a partitioning line, we must
+   Using this partition line, we must split any lines that are intersected
+   into a left and right half, flagging them to be put their respective sides
+   Ok, now we have the best line to use as a partitioning line, we must
    split all of the segs into two lists (rightside & leftside).				 */
 
-	rights = NULL;									/* Start off with empty*/
-	lefts = NULL;									/* lists.*/
-	strights = NULL;								/* Start off with empty*/
-	stlefts = NULL;								/* lists.*/
-
-	psx = vertices[best->start].x;			/* Partition line coords*/
-	psy = vertices[best->start].y;
-	pex = vertices[best->end].x;
-	pey = vertices[best->end].y;
-	pdx = psx - pex;								/* Partition line DX,DY*/
-	pdy = psy - pey;
-
 	for(tmps=ts;tmps;tmps=tmps->next)
-		{
-		progress();									/* Something for the user to look at.*/
-		add_to_rs = NULL;
-		add_to_ls = NULL;
-		if(tmps != best)
-			{
-			lsx = vertices[tmps->start].x;	/* Calculate this here, cos it doesn't*/
-			lsy = vertices[tmps->start].y;	/* change for all the interations of*/
-			lex = vertices[tmps->end].x;		/* the inner loop!*/
-			ley = vertices[tmps->end].y;
-			val = DoLinesIntersect();
-			if((val&2 && val&64) || (val&4 && val&32))	/* If intersecting !!*/
-				{
-				ComputeIntersection(&x,&y);
-/*				printf("Splitting Linedef %d at %d,%d\n",tmps->linedef,x,y);*/
- 			        vertices = ResizeMemory(vertices, sizeof(struct Vertex) * (num_verts+1));
-				vertices[num_verts].x = x;
-				vertices[num_verts].y = y;
+         {
+          long a = best->pdy * tmps->psx - best->pdx * tmps->psy + best->ptmp;
+          long b = best->pdy * tmps->pex - best->pdx * tmps->pey + best->ptmp;
 
-				news = GetMemory(sizeof( struct Seg));
+          if ((a^b) < 0)
+            if (a && b)
+	     {                    /* Seg is split */
+                double ds = (double) a / (a-b);  /* 0 = start, 1 = end */
+                int x = tmps->psx + tmps->pdx * ds;
+	        int y = tmps->psy + tmps->pdy * ds;
 
-				news->next = tmps->next;
-				tmps->next = news;
-				news->start = num_verts;
-				news->end = tmps->end;
-				tmps->end = num_verts;
-				news->linedef = tmps->linedef;
-				news->angle = tmps->angle;
-				news->flip = tmps->flip;
-				news->dist = SplitDist(news);
-/*				printf("splitting dist = %d\n",news->dist);*/
-/*				printf("splitting vertices = %d,%d,%d,%d\n",tmps->start,tmps->end,news->start,news->end);*/
-				if(val&32) add_to_ls = tmps;
-				if(val&64) add_to_rs = tmps;
-				if(val&2) add_to_ls = news;
-				if(val&4) add_to_rs = news;
-				tmps = news;
-				num_verts++;
-				num_new++;
-				}
-			else
-				{											/* Not split, which side ?*/
-				if(val&34) add_to_ls = tmps;
-				if(val&68) add_to_rs = tmps;
-				if(val&1 && val&16)					/* On same line*/
-					{
-/* 06/01/97 Lee Killough: this fixes a bug ever since 1.2x,
-   probably 1.0, of BSP: when partitioning a parallel seg,
-   you must take its vertices' orientation into account, NOT the
-   flip bits, to determine which side of the partitioning line a
-   parallel seg should go on. If you simply flip the linedef in
-   question, you will be flipping both its vertices and sidedefs,
-   and the flip bits as well, even though the basic geometry has
-   not changed. Thus you need to use the vertices' orientation
-   (whether the seg is in the same direction or not, regardless
-   of its original linedef's being flipped or not), into account.
+                if (x==tmps->psx && y==tmps->psy)
+                  if (b<0)
+                    goto leftside;
+                  else
+                    goto rightside;
 
-   Originally, some segs were partitioned backwards, and if
-   it happened that there were different sectors on either
-   side of the seg being partitioned, it could leave holes
-   in space, causing either invisible barriers or disappearing
-   Things, because the ssector would be associated with the
-   wrong sector.
+                if (x==tmps->pex && y==tmps->pey)
+                  if (a<0)
+                    goto leftside;
+                  else
+                    goto rightside;
 
-   The old logic of tmps->flip != best->flip seems to rest on
-   the assumption that if two segs are parallel, they came
-   from the same linedef. This is clearly not always true.   */
+/*		printf("Splitting Linedef %d at %d,%d\n",tmps->linedef,x,y); */
 
-              /*  if (tmps->flip != best->flip)   old logic -- wrong!!! */
+ 	        vertices = ResizeMemory(vertices, sizeof(struct Vertex) * (num_verts+1));
 
-              /* We know the segs are parallel or nearly so, so take their
-                 dot product to determine their relative orientation. */
+		vertices[num_verts].x = x;
+		vertices[num_verts].y = y;
+  		news = GetMemory(sizeof( struct Seg));
 
-		if ( (lsx-lex)*pdx + (lsy-ley)*pdy < 0)
-  	         add_to_ls = tmps;
-	 	else
-		 add_to_rs = tmps;
-					}
-				}
-			}
-		else add_to_rs = tmps;						/* This is the partition line*/
+                *news = *tmps;
+		tmps->next = news;
+		news->start = num_verts;
+		tmps->end = num_verts;
 
-/*		printf("Val = %X\n",val);*/
+                news->pdx = (long) (news->pex = vertices[news->end].x)
+                                 - (news->psx = x);
+                news->pdy = (long) (news->pey = vertices[news->end].y)
+                                 - (news->psy = y);
+                news->ptmp = news->pdx*news->psy - news->psx*news->pdy;
+                news->len = (long) sqrt((double) news->pdx*news->pdx +
+                                        (double) news->pdy*news->pdy);
 
-		if(add_to_rs)							/* CHECK IF SHOULD ADD RIGHT ONE */
-			{
-			new_rs = GetMemory(sizeof(struct Seg));
-			if(add_to_rs == best) new_best = new_rs;
-			new_rs->start = add_to_rs->start;
-			new_rs->end = add_to_rs->end;
-			new_rs->linedef = add_to_rs->linedef;
-			new_rs->angle = add_to_rs->angle;
-			new_rs->flip = add_to_rs->flip;
-			new_rs->dist = add_to_rs->dist;
-			new_rs->next = NULL;
-			if(!rights) strights = rights = new_rs;
-			else
-				{
-				rights->next = new_rs;
-				rights = new_rs;
-				}
-			}
-				
-		if(add_to_ls)							/* CHECK IF SHOULD ADD LEFT ONE */
-			{
-			new_ls = GetMemory(sizeof(struct Seg));
-			if(add_to_ls == best) new_best = new_ls;
-			new_ls->start = add_to_ls->start;
-			new_ls->end = add_to_ls->end;
-			new_ls->linedef = add_to_ls->linedef;
-			new_ls->angle = add_to_ls->angle;
-			new_ls->flip = add_to_ls->flip;
-			new_ls->dist = add_to_ls->dist;
-			new_ls->next = NULL;
-			if(!lefts) stlefts = lefts = new_ls;
-			else
-				{
-				lefts->next = new_ls;
-				lefts = new_ls;
-				}
-			}
-		}
+                tmps->pdx = (long) (tmps->pex = x)
+                                 - (tmps->psx = vertices[tmps->start].x);
+                tmps->pdy = (long) (tmps->pey = y)
+                                 - (tmps->psy = vertices[tmps->start].y);
+                tmps->ptmp = tmps->pdx*tmps->psy - tmps->psx*tmps->pdy;
+                tmps->len = (long) sqrt((double) tmps->pdx*tmps->pdx +
+                                        (double) tmps->pdy*tmps->pdy);
+
+                {
+                 long dx,dy;
+                 if (news->flip)
+                  {
+                   dx = vertices[linedefs[news->linedef].end].x;
+                   dy = vertices[linedefs[news->linedef].end].y;
+                  }
+                 else
+                  {
+                   dx = vertices[linedefs[news->linedef].start].x;
+                   dy = vertices[linedefs[news->linedef].start].y;
+                  }
+                 dx -= news->psx;
+                 dy -= news->psy;
+                 news->dist = (int)(sqrt((double) dx*dx + (double) dy*dy));
+                }
+
+/*		printf("splitting dist = %d\n",news->dist);*/
+/*		printf("splitting vertices = %d,%d,%d,%d\n",tmps->start,tmps->end,news->start,news->end);*/
+
+                if (a<0)
+                 {
+                  add_to_rs=news;
+                  add_to_ls=tmps;
+                 }
+                else
+                 {
+                  add_to_ls=news;
+                  add_to_rs=tmps;
+                 }
+		tmps = news;
+		num_verts++;
+             }
+            else
+             goto leftside;
+          else
+            if (a<=0 && (a || (!b && tmps->pdx*best->pdx+tmps->pdy*best->pdy < 0 )))
+             {
+              leftside:
+              add_to_ls=tmps;     /* Seg is on left side */
+              add_to_rs=NULL;
+             }
+            else
+             {
+              rightside:
+              add_to_rs=tmps;     /* Seg is on right side */
+              add_to_ls=NULL;
+             }
+
+	if (add_to_rs)	  /* CHECK IF SHOULD ADD RIGHT ONE */
+         {
+/*
+          printf("Adding linedef %d (%d,%d) (%d) to right side\n",
+          add_to_rs->linedef, add_to_rs->start, add_to_rs->end,
+          add_to_rs->flip);
+*/
+	  new_rs = GetMemory(sizeof(struct Seg));
+	  if (add_to_rs == best)
+            new_best = new_rs;
+          *new_rs = *add_to_rs;
+	  new_rs->next = NULL;
+ 	  if (!rights)
+            strights = rights = new_rs;
+	  else
+	   {
+	    rights->next = new_rs;
+	    rights = new_rs;
+           }
+	}
+
+      if (add_to_ls)	/* CHECK IF SHOULD ADD LEFT ONE */
+       {
+/*
+        printf("Adding linedef %d (%d,%d) (%d) to left side\n",
+        add_to_ls->linedef, add_to_ls->start, add_to_ls->end,
+        add_to_ls->flip);
+*/
+	new_ls = GetMemory(sizeof(struct Seg));
+	if (add_to_ls == best)
+          new_best = new_ls;
+        *new_ls = *add_to_ls;
+	new_ls->next = NULL;
+	if (!lefts)
+          stlefts = lefts = new_ls;
+	else
+         {
+	  lefts->next = new_ls;
+	  lefts = new_ls;
+       	 }
+      }
+   }
 
 	if(strights == NULL)
 		{
-/*		printf("No right side, moving partition into right side\n");*/
+/*		printf("No right side, moving partition into right side\n"); */
 		strights = rights = new_best;
 		prev = NULL;
 		for(tmps=stlefts;tmps;tmps=tmps->next)
@@ -206,10 +197,10 @@ static __inline__ void DivideSegs(struct Seg *ts,struct Seg **rs,struct Seg **ls
 			}
 		prev->next = NULL;
 		}
-	
+
 	if(stlefts == NULL)
 		{
-/*		printf("No left side, moving partition into left side\n");*/
+/*		printf("No left side, moving partition into left side\n"); */
 		stlefts = lefts = new_best;
 		prev = NULL;
 		for(tmps=strights;tmps;tmps=tmps->next)
@@ -222,200 +213,180 @@ static __inline__ void DivideSegs(struct Seg *ts,struct Seg **rs,struct Seg **ls
 			prev=tmps;
 			}
 		stlefts->next = NULL;
-		prev->next = NULL;								/* Make sure end of list = NULL*/
+		prev->next = NULL;        /* Make sure end of list = NULL*/
 		}
 
-	if(rights->next != NULL) rights->next = NULL;
-	if(lefts->next != NULL) lefts->next = NULL;
+        rights->next = NULL;
+	lefts->next = NULL;
 
-	for(tmps=ts;tmps;tmps=best)
-		{
-		best=tmps->next;
-		free(tmps);
-		}
-
-/*	printf("Made %d new Vertices and Segs\n",num_new);*/
-
-	*rs = strights ; *ls = stlefts;
+	*rs = strights;
+        *ls = stlefts;
+        return 0;
 }
 
 /*--------------------------------------------------------------------------*/
 
-static __inline__ int IsItConvex( struct Seg *ts)
+static int IsItConvex(const struct Seg *ts)
 {
-   struct Seg *line=ts,*check;
-   int   sector,val;
+   const struct Seg *line;
+   register const struct Seg *check;
+   int sector;
 
-/* All ssectors must come from same sector unless it's marked
-   "special" with sector tag >= 900. Original idea, Lee Killough */
+   for (line=ts; line; line=line->next)
+     if (linedefs[line->linedef].tag >= 900 &&
+         linedefs[line->linedef].flags & 4 &&
+         sidedefs[linedefs[line->linedef].sidedef1].sector==
+         sidedefs[linedefs[line->linedef].sidedef2].sector)
+       for (check=line->next;check;check=check->next)
+         if (check->linedef==line->linedef && check->flip!=line->flip)
+           return FALSE;
 
-   sector = sidedefs[ts->flip ? linedefs[ts->linedef].sidedef2 :
-                                linedefs[ts->linedef].sidedef1].sector;
-   if (sectors[sector].tag < 900)
-     while ((line=line->next)!=0)
+  /* All ssectors must come from same sector unless it's marked
+     "special" with sector tag >= 900. Original idea, Lee Killough */
+
+   for (check=ts; check; check=check->next)
+     if (linedefs[check->linedef].tag < 900 &&
+         sectors[sector=check->sector].tag < 900)
       {
-       int ts=sidedefs[line->flip ? linedefs[line->linedef].sidedef2 :
-                                    linedefs[line->linedef].sidedef1].sector;
-       if (ts != sector && sectors[ts].tag < 900)
-           return TRUE;
+       while ((check=check->next)!=NULL)
+         if (check->sector != sector &&
+             sectors[check->sector].tag < 900 &&
+             linedefs[check->linedef].tag < 900 )
+           return FALSE;
+       break;
       }
 
-   /* all of the segs must be on the same side all the other segs */
+   /* all of the segs must be <= 180 degrees apart */
 
-	for(line=ts;line;line=line->next)
-		{
-		psx = vertices[line->start].x;
-		psy = vertices[line->start].y;
-		pex = vertices[line->end].x;
-		pey = vertices[line->end].y;
-		pdx = (psx - pex);									/* Partition line DX,DY*/
-		pdy = (psy - pey);
-		for(check=ts;check;check=check->next)
-			{
-			if(line!=check)
-				{
-				lsx = vertices[check->start].x;	/* Calculate this here, cos it doesn't*/
-				lsy = vertices[check->start].y;	/* change for all the interations of*/
-				lex = vertices[check->end].x;		/* the inner loop!*/
-				ley = vertices[check->end].y;
-				val = DoLinesIntersect();
-				if(val&34) return TRUE;
-				}
-			}
-		}
+   for (line=ts;line;line=line->next)
+     for (check=ts;check;check=check->next) /* Check partition against all Segs*/
+      { /*     get state of lines' relation to each other    */
+       long a = line->pdy * check->psx - line->pdx * check->psy + line->ptmp;
+       long b = line->pdy * check->pex - line->pdx * check->pey + line->ptmp;
 
-	/* no need to split the list: these Segs can be put in a SSector */
-   return FALSE;
+       if ((a^b)>=0 ? a<0 : check->len*a/(a-b)>=2 && check->len*b/(b-a)>=2)
+         return FALSE;
+     }
+  /* no need to split the list: these Segs can be put in a SSector */
+   return TRUE;
 }
 
 /*--------------------------------------------------------------------------*/
 
-static __inline__ int CreateSSector(struct Seg *tmps)
+static int CreateSSector(struct Seg *tmps)
 {
-	int n;
+  int n=0;
+  struct Seg *ts;
 
-	if(num_ssectors == 0)
-		{
-		ssectors = GetMemory(sizeof(struct SSector));
-		}
-	else
-		{
-		ssectors = ResizeMemory(ssectors,sizeof(struct SSector)*(num_ssectors+1));
-		}
-	
-	ssectors[num_ssectors].first = num_psegs;
+  for (ts=tmps;ts;ts=ts->next)
+    n++;
 
-	n = num_psegs;
-	
-/*	printf("\n");*/
+  ssectors = num_ssectors ? ResizeMemory(ssectors,sizeof(struct SSector)*(num_ssectors+1))
+                          : GetMemory(sizeof(struct SSector));
 
-	for(;tmps;tmps=tmps->next)
-		{
-		if(num_psegs == 0)
-			{
-			psegs = GetMemory(sizeof(struct Pseg));
-			}
-		else
-			{
-			psegs = ResizeMemory(psegs,sizeof(struct Pseg)*(num_psegs+1));
-			}
+  ssectors[num_ssectors].num = n;
 
-		psegs[num_psegs].start = tmps->start;
-		psegs[num_psegs].end = tmps->end;
-		psegs[num_psegs].angle = tmps->angle;
-		psegs[num_psegs].linedef = tmps->linedef;
-		psegs[num_psegs].flip = tmps->flip;
-		psegs[num_psegs].dist = tmps->dist;
-/*
-		printf("%d,%d,%u,%d,%d,%u\n",
-			psegs[num_psegs].start,
-			psegs[num_psegs].end,
-			psegs[num_psegs].angle,
-			psegs[num_psegs].linedef,
-			psegs[num_psegs].flip,
-			psegs[num_psegs].dist);
-*/
-		num_psegs++;
-		}
+  ssectors[num_ssectors].first = num_psegs;
 
-	ssectors[num_ssectors].num = num_psegs-n;
+  psegs = num_psegs ? ResizeMemory(psegs,sizeof(struct Pseg)*(num_psegs+n))
+                    : GetMemory(sizeof(struct Pseg)*n);
 
-	num_ssectors++;
+  for (;tmps;tmps=tmps->next)
+   {
+    psegs[num_psegs].start = tmps->start;
+    psegs[num_psegs].end = tmps->end;
+    psegs[num_psegs].angle = tmps->angle;
+    psegs[num_psegs].linedef = tmps->linedef;
+    psegs[num_psegs].flip = tmps->flip;
+    psegs[num_psegs++].dist = tmps->dist;
+   }
 
-	return num_ssectors-1;
+  return num_ssectors++;
 }
 
 /*- translate (dx, dy) into an integer angle value (0-65535) ---------------*/
 
-static __inline__ unsigned ComputeAngle( int dx, int dy)
+static unsigned ComputeAngle(long dx, long dy)
 {
-   double w;
+  double w = atan2( (double) dy , (double) dx ) * (32768.0/M_PI);
+  if (w<0) w+=65536.0;
+  return (unsigned) w;
+}
 
-	w = (atan2( (double) dy , (double) dx) * (double)(65536/(M_PI*2)));
+static void DelSegs(struct Seg *ts)
+{
+ while (ts)
+  {
+   struct Seg *t=ts->next;
+   free(ts);
+   ts=t;
+  }
+}
 
-	if(w<0) w = (double)65536+w;
-
-	return (unsigned) w;
+static unsigned height(const struct Node *tn)
+{
+ if (tn)
+  {
+   unsigned l=height(tn->nextl),r=height(tn->nextr);
+   return l>r ? l+1 : r+1;
+  }
+ return 1;
 }
 
 static struct Node *CreateNode(struct Seg *ts)
 {
-	struct Node *tn;
-	struct Seg *rights = NULL;
-	struct Seg *lefts = NULL;
+ struct Node node, *tn=&node;
+ struct Seg *rights,*lefts,*best;
 
-	tn = GetMemory( sizeof( struct Node));				/* Create a node*/
- 
-	DivideSegs(ts,&rights,&lefts);						/* Divide node in two*/
+ best = PickNode(ts);           /* Pick best node to use.*/
 
-	num_nodes++;
+ if (!best)                     /* Failsafe measure */
+   best=ts;
 
-	tn->x = node_x;											/* store node line info*/
-	tn->y = node_y;
-	tn->dx = node_dx;
-	tn->dy = node_dy;
+ DivideSegs(ts,best,&rights,&lefts);
 
-	FindLimits(lefts);										/* Find limits of vertices	*/
+ if (!rights || !lefts)         /* Failsafe measure */
+   return NULL;
 
-	tn->maxy2 = lmaxy;
-	tn->miny2 = lminy;
-	tn->minx2 = lminx;
-	tn->maxx2 = lmaxx;
+ FindLimits(lefts);			/* Find limits of vertices   */
+ tn->maxy2 = lmaxy;
+ tn->miny2 = lminy;
+ tn->minx2 = lminx;
+ tn->maxx2 = lmaxx;
 
-	if(IsItConvex(lefts))	  								/* Check lefthand side*/
-		{
-		tn->nextl = CreateNode(lefts);					/* still segs remaining*/
-		tn->chleft = 0;
-		}
-	else
-		{
-		tn->nextl = NULL;
-		tn->chleft = CreateSSector(lefts) | 0x8000;
-		}
+ tn->nextl = IsItConvex(lefts) ? NULL : CreateNode(lefts);
 
-	FindLimits(rights);										/* Find limits of vertices*/
-	
-	tn->maxy1 = lmaxy;
-	tn->miny1 = lminy;
-	tn->minx1 = lminx;
-	tn->maxx1 = lmaxx;
+ FindLimits(rights);			/* Find limits of vertices*/
+ tn->maxy1 = lmaxy;
+ tn->miny1 = lminy;
+ tn->minx1 = lminx;
+ tn->maxx1 = lmaxx;
 
-	if(IsItConvex(rights))									/* Check righthand side*/
-		{
-		tn->nextr = CreateNode(rights);					/* still segs remaining*/
-		tn->chright = 0;
-		}
-	else
-		{
-		tn->nextr = NULL;
-		tn->chright =  CreateSSector(rights) | 0x8000;
-		}
+ tn->nextr = IsItConvex(rights) ? NULL : CreateNode(rights);
 
-	return tn;
+ if (!tn->nextl)
+   tn->chleft = CreateSSector(lefts);
+
+ if (!tn->nextr)
+   tn->chright = CreateSSector(rights);
+
+ tn->x  = best->psx;
+ tn->y  = best->psy;
+ tn->dx = best->pdx;
+ tn->dy = best->pdy;
+
+ tn->ptmp=tn->dx*tn->y-tn->dy*tn->x;
+
+ DelSegs(ts);
+
+ num_nodes++;
+ tn = GetMemory(sizeof(*tn));	/* Create a node*/
+ *tn = node;
+ return tn;
 }
 
 /*---------------------------------------------------------------------------*
-   
+
 	This message has been taken, complete, from OBJECTS.C in DEU5beta source.
 	It outlines the method used here to pick the nodelines.
 

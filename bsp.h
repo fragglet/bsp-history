@@ -6,15 +6,14 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <math.h>
+#include <limits.h>
+#include <assert.h>
 
 #if defined(MSDOS) || defined(__MSDOS__)
 #include <dos.h>
 #endif
 #ifdef __TURBOC__
 #include <alloc.h>
-#endif
-#ifndef GCC
-#define __INLINE__
 #endif
 
 /*- boolean constants ------------------------------------------------------*/
@@ -24,13 +23,10 @@
 
 /*- The function prototypes ------------------------------------------------*/
 
-int main( int, char *[]);												/* from bsp.c */
-
-static void ProgError( char *, ...);											/* from funcs.c */
-static __inline__ void *GetMemory( size_t);
-static __inline__ void *ResizeMemory( void *, size_t);
-
-static __inline__ unsigned int ComputeAngle( int, int);
+static void ProgError( char *, ...);
+static void *GetMemory(size_t);
+static void *ResizeMemory(void *, size_t);
+static unsigned ComputeAngle(long,long);
 
 #undef max
 #define max(a,b) (((a)>(b))?(a):(b))
