@@ -1,4 +1,11 @@
 -------------------------------------------------------------------------------
+Changes in v5.2 - Colin Phipps, 2006/08/12:
+
+- Fix trivial compile error on big-endian systems.
+- Fix various problems for 64 bit systems.
+- Fix compilation warnings, general code tidy-up.
+
+-------------------------------------------------------------------------------
 Changes in v5.1 - Colin Phipps, 7/2002:
 
 - Compressed blockmap support, contributed by Simon "fraggle" Howard. Not

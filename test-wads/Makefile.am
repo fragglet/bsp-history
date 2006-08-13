@@ -1,4 +1,3 @@
-# $Id: Makefile.am,v 1.6 2001/11/17 15:42:43 cph Exp $
 
 BSP = ../bsp
 WADS = bsp23bug.wad conduits.wad transdor.wad visarea.wad

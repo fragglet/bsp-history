@@ -1,28 +1,30 @@
 #include "config.h"
 
+#include <inttypes.h>
+
 /*- Doom Structures .. Colin Reed 1994 -------------------------------------*/
 
 struct wad_header 					/* Linked wad files list.*/
 {
 	char type[4];
-	long int num_entries;
-	long int dir_start;
-};
+	uint32_t num_entries;
+	uint32_t dir_start;
+} __attribute__((packed));
 
 struct directory 						/* The directory entry header*/
 {
-	long int start;
-	long int length;
+	uint32_t start;
+	uint32_t length;
 	char name[8];
-};
+} __attribute__((packed));
 
 struct Block
 {
-	short minx;
-	short miny;
-	short xblocks;
-	short yblocks;
-};
+	int16_t minx;
+	int16_t miny;
+	int16_t xblocks;
+	int16_t yblocks;
+} __attribute__((packed));
 
 struct lumplist {
  struct lumplist *next;
@@ -35,50 +37,50 @@ struct lumplist {
 
 struct Thing
 {
-   short xpos;      /* x position */
-   short ypos;      /* y position */
-   short angle;     /* facing angle */
-   short type;      /* thing type */
-   short when;      /* appears when? */
-};
+   int16_t xpos;      /* x position */
+   int16_t ypos;      /* y position */
+   int16_t angle;     /* facing angle */
+   int16_t type;      /* thing type */
+   int16_t when;      /* appears when? */
+} __attribute__((packed));
 
 struct Vertex
 {
-   short int x;         /* X coordinate */
-   short int y;         /* Y coordinate */
-};
+   int16_t x;         /* X coordinate */
+   int16_t y;         /* Y coordinate */
+} __attribute__((packed));
 
 struct LineDef
 {
-   short int start;     /* from this vertex ... */
-   short int end;       /* ... to this vertex */
-   short int flags;     /* see NAMES.C for more info */
-   short int type;      /* see NAMES.C for more info */
-   short int tag;       /* crossing this linedef activates the sector with the same tag */
-   short int sidedef1;  /* sidedef */
-   short int sidedef2;  /* only if this line adjoins 2 sectors */
-};
+   uint16_t start;     /* from this vertex ... */
+   uint16_t end;       /* ... to this vertex */
+   uint16_t flags;     /* see NAMES.C for more info */
+   uint16_t type;      /* see NAMES.C for more info */
+   uint16_t tag;       /* crossing this linedef activates the sector with the same tag */
+   int16_t sidedef1;  /* sidedef */
+   int16_t sidedef2;  /* only if this line adjoins 2 sectors */
+} __attribute__((packed));
 
 struct SideDef
 {
-   short int xoff;      /* X offset for texture */
-   short int yoff;      /* Y offset for texture */
+   int16_t xoff;      /* X offset for texture */
+   int16_t yoff;      /* Y offset for texture */
    char tex1[8];  /* texture name for the part above */
    char tex2[8];  /* texture name for the part below */
    char tex3[8];  /* texture name for the regular part */
-   short int sector;    /* adjacent sector */
-};
+   int16_t sector;    /* adjacent sector */
+} __attribute__((packed));
 
 struct Sector
 {
-   short int floorh;    /* floor height */
-   short int ceilh;     /* ceiling height */
+   int16_t floorh;    /* floor height */
+   int16_t ceilh;     /* ceiling height */
    char floort[8];/* floor texture */
    char ceilt[8]; /* ceiling texture */
-   short int light;     /* light level (0-255) */
-   short int special;   /* special behaviour (0 = normal, 9 = secret, ...) */
-   short int tag;       /* sector activated by a linedef with the same tag */
-};
+   int16_t light;     /* light level (0-255) */
+   int16_t special;   /* special behaviour (0 = normal, 9 = secret, ...) */
+   int16_t tag;       /* sector activated by a linedef with the same tag */
+} __attribute__((packed));
 
 /*--------------------------------------------------------------------------*/
 /* These are the structure used for creating the NODE bsp tree.             */
@@ -97,7 +99,7 @@ struct Seg
         long pdx,pdy,ptmp;      /* Used in intersection calculations */
         long len;
         short sector;
-};
+} __attribute__((packed));
 
 struct Pseg
 {
@@ -107,37 +109,37 @@ struct Pseg
    short int linedef;   /* linedef that this seg goes along*/
    short int flip;      /* true if not the same direction as linedef */
    unsigned short dist; /* distance from starting point */
-};
+} __attribute__((packed));
 
 /* cph - dedicated type for bounding boxes, as in the Doom source */
-typedef short int bbox_t[4];
+typedef int16_t bbox_t[4];
 enum { BB_TOP, BB_BOTTOM, BB_LEFT, BB_RIGHT };
 
 struct Node
 {
-   short int x, y;									/* starting point*/
-   short int dx, dy;									/* offset to ending point*/
-   bbox_t rightbox;					/* bounding rectangle 1*/
-   bbox_t leftbox;					/* bounding rectangle 2*/
-   short int chright, chleft;				/* Node or SSector (if high bit is set)*/
+   int16_t x, y;			/* starting point*/
+   int16_t dx, dy;			/* offset to ending point*/
+   bbox_t rightbox;			/* bounding rectangle 1*/
+   bbox_t leftbox;			/* bounding rectangle 2*/
+   int16_t chright, chleft;		/* Node or SSector (if high bit is set)*/
 	struct Node *nextr,*nextl;
-	short int node_num;	        		/* starting at 0 (but reversed when done)*/
+	int16_t node_num;	        		/* starting at 0 (but reversed when done)*/
         long ptmp;
-};
+} __attribute__((packed));
 
 struct Pnode
 {
-   short int x, y;									/* starting point*/
-   short int dx, dy;									/* offset to ending point*/
-   bbox_t rightbox;					/* bounding rectangle 1*/
-   bbox_t leftbox;					/* bounding rectangle 2*/
-   short int chright, chleft;				/* Node or SSector (if high bit is set)*/
-};
+   int16_t x, y;		/* starting point*/
+   int16_t dx, dy;		/* offset to ending point*/
+   bbox_t rightbox;		/* bounding rectangle 1*/
+   bbox_t leftbox;		/* bounding rectangle 2*/
+   int16_t chright, chleft;	/* Node or SSector (if high bit is set)*/
+} __attribute__((packed));
 
 struct SSector
 {
-   short int num;       /* number of Segs in this Sub-Sector */
-   short int first;     /* first Seg */
-};
+   uint16_t num;       /* number of Segs in this Sub-Sector */
+   uint16_t first;     /* first Seg */
+} __attribute__((packed));
 
 /*--------------------------------------------------------------------------*/

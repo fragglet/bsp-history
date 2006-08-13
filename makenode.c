@@ -1,11 +1,10 @@
 /*- MAKENODE.C --------------------------------------------------------------*
- $Id: makenode.c,v 1.7 2002/05/04 14:49:15 cph Exp $
  Recursively create nodes and return the pointers.
 *---------------------------------------------------------------------------*/
 #include "structs.h"
 #include "bsp.h"
 
-short node_x, node_y, node_dx, node_dy;
+signed short node_x, node_y, node_dx, node_dy;
 
 /*--------------------------------------------------------------------------*/
 
@@ -356,8 +355,7 @@ static inline int CreateSSector(struct Seg *tmps)
 
 /*- translate (dx, dy) into an integer angle value (0-65535) ---------------*/
 
-inline unsigned ComputeAngle( int dx, int dy)
-{
+inline unsigned int ComputeAngle(int dx, int dy) {
    double w;
 
 	w = (atan2( (double) dy , (double) dx) * (double)(65536/(M_PI*2)));

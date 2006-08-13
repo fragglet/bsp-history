@@ -1,6 +1,6 @@
 Node builder for DOOM levels (c) 1998 Colin Reed, Lee Killough
                              (c) 2001 Simon Howard
-                             (c) 2000,2001,2002 Colin Phipps
+                             (c) 2000,2001,2002,2006 Colin Phipps
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
@@ -14,7 +14,7 @@ code, by Raphael Quinet <Raphael.Quinet@eed.ericsson.se>.
 It was later maintained by Lee Killough, who added support for some special
 effects, worked a lot on the visplanes problem, and did various optimisations.
 
-Since v5, BSP is maintained by Colin Phipps (cph@cph.demon.co.uk).
+Since v5, BSP is maintained by Colin Phipps <cph@moria.org.uk>.
 
 Also the following people have also contributed to the development of BSP:
 

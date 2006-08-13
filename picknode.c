@@ -1,7 +1,5 @@
 /*- PICKNODE.C --------------------------------------------------------------*
 
-  $Id: picknode.c,v 1.3 2000/09/07 19:51:49 cph Exp $
-
  To be able to divide the nodes down, this routine must decide which is the
  best Seg to use as a nodeline. It does this by selecting the line with least
  splits and has least difference of Segs on either side of it.
@@ -333,7 +331,7 @@ void ComputeIntersection(short int *outx,short int *outy)
  side checker.
 *---------------------------------------------------------------------------*/
 
-int DoLinesIntersect()
+int DoLinesIntersect(void)
 {
 	short int x,y,val = 0;
 

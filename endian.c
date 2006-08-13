@@ -1,5 +1,4 @@
-/* $Id: endian.c,v 1.3 2002/04/06 19:31:51 cph Exp $
- *
+/* 
  * Endianness correction for Doom level structures
  * Written by Oliver Kraus <olikraus@yahoo.com>
  *
@@ -17,24 +16,24 @@ void ConvertLinedef(void) {};
 void ConvertSidedef(void) {};
 void ConvertSector(void) {};
 
-void swapshort(unsigned short *i) {};
-void swaplong(unsigned long *l) {};
+void swapshort(uint16_t *i) {};
+void swaplong(uint32_t *l) {};
 void swapint(unsigned int *l) {};
 
 #else
 
-void swapshort(unsigned short *i)
+void swapshort(uint16_t *i)
 {
-  unsigned short int t;
+  uint16_t t;
 
   ((char *) &t)[ 0] = ((char *) i)[ 1];
   ((char *) &t)[ 1] = ((char *) i)[ 0];
   *i = t;
 }
 
-void swaplong(unsigned long *l)
+void swaplong(uint32_t *l)
 {
-  unsigned long t;
+  uint32_t t;
 
   ((char *) &t)[ 0] = ((char *) l)[ 3];
   ((char *) &t)[ 1] = ((char *) l)[ 2];
@@ -43,15 +42,11 @@ void swaplong(unsigned long *l)
   *l = t;
 }
 
-void swapint(unsigned int *l)
-{
-  unsigned int t;
-
-  ((char *) &t)[ 0] = ((char *) l)[ 3];
-  ((char *) &t)[ 1] = ((char *) l)[ 2];
-  ((char *) &t)[ 2] = ((char *) l)[ 1];
-  ((char *) &t)[ 3] = ((char *) l)[ 0];
-  *l = t;
+inline void swapint(unsigned int *l) {
+  if(sizeof(int) == 4) { swaplong((void *)l); }
+  else if(sizeof(int) == 2) { swapshort((void *)l); }
+  else { ProgError("int is neither 4 nor 2 bytes in size"); }
+  return;
 }
 
 void ConvertVertex(void)
@@ -195,7 +190,7 @@ void ConvertAll(void)
 {
   Verbose("Doing endianness correction... ");
   ConvertVertex();
-  ConvertLineDef();
+  ConvertLinedef();
   ConvertSidedef();
   ConvertSector();
   ConvertPseg();

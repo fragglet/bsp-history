@@ -319,7 +319,7 @@ CreateBlockmap_compressed(const bbox_t bbox)
 {
 	int             x, y, n;
 	int             blocknum = 0;
-	short *         templines;
+	unsigned short *templines;
 	int             num_templines;
 	struct Block	blockhead;
 

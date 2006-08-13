@@ -47,7 +47,7 @@ void progress(void);
 void FindLimits(struct Seg *, bbox_t box);
 int SplitDist(struct Seg *ts);
 
-extern char *unlinkwad;
+extern const char *unlinkwad;
 
 struct lumplist *FindDir(const char *);
 void* ReadLump(struct lumplist *l);
@@ -61,16 +61,16 @@ void ConvertLinedef(void);
 void ConvertSidedef(void);
 void ConvertSector(void);
 
-void swapshort(unsigned short *i);
-void swaplong(unsigned long *l);
+void swapshort(uint16_t *i);
+void swaplong(uint32_t *l);
 void swapint(unsigned int *l);
 
 /* funcs.c */
 extern int verbosity;
-void Verbose(const char*, ...);
-void ProgError(const char *, ...);
-void *GetMemory(size_t);
-void *ResizeMemory(void *, size_t);
+void Verbose(const char*, ...)  __attribute__((format(printf,1,2)));
+void ProgError(const char *, ...) __attribute__((format(printf,1,2), noreturn));
+void* GetMemory(size_t) __attribute__((warn_unused_result, malloc));
+void* ResizeMemory(void *, size_t) __attribute__((warn_unused_result));
 
 /* level.c */
 
@@ -111,11 +111,11 @@ extern int factor;
 struct Seg *PickNode_traditional(struct Seg *, const bbox_t bbox);
 struct Seg *PickNode_visplane(struct Seg *, const bbox_t bbox);
 extern struct Seg *(*PickNode)(struct Seg *, const bbox_t bbox);
-int DoLinesIntersect();
+int DoLinesIntersect(void);
 void ComputeIntersection(short int *outx,short int *outy);
 
 /* malloc edbugging with dmalloc */
-#ifdef HAVE_LIBDMALLOC
+#ifdef WITH_DMALLOC
 #include <dmalloc.h>
 
 #define GetMemory malloc

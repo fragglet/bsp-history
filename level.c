@@ -66,7 +66,7 @@ static void     GetLinedefs(void);
 static void     GetSidedefs(void);
 static void     GetSectors(void);
 
-static struct Seg *CreateSegs();
+static struct Seg *CreateSegs(void);
 
 /*--------------------------------------------------------------------------*/
 /* Find limits from a list of segs, does this by stepping through the segs */
@@ -142,8 +142,7 @@ add_seg(struct Seg * cs, int n, int fv, int tv,
 
 /*- initially creates all segs, one for each line def ----------------------*/
 
-static struct Seg *
-CreateSegs()
+static struct Seg* CreateSegs(void)
 {
 	struct Seg     *cs = NULL;	/* current Seg */
 	struct Seg     *fs = NULL;	/* first Seg in list */
@@ -272,8 +271,7 @@ GetSectors(void)
 /* Converts the nodes from a btree into the array format for inclusion in 
  * the .wad. Frees the btree as it goes */
 
-static short 
-ReverseNodes(struct Node * tn)
+static signed short ReverseNodes(struct Node * tn)
 {
 	struct Pnode   *pn;
 

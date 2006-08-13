@@ -1,5 +1,4 @@
 /*- FUNCS.C ----------------------------------------------------------------*/
-/* $Id: funcs.c,v 1.6 2001/07/21 15:10:08 cph Exp $ */
 /*- terminate the program reporting an error -------------------------------*/
 
 #include "structs.h"
@@ -39,26 +38,25 @@ void Verbose(const char *errstr, ...)
    va_end( args);
 }
 
-#ifndef HAVE_LIBDMALLOC
+#ifndef WITH_DMALLOC
 /*- allocate memory with error checking ------------------------------------*/
-void *GetMemory( size_t size)
+void* GetMemory(size_t size)
 {
    void *ret = malloc( size);
    if (!ret)
-      ProgError( "out of memory (cannot allocate %u bytes)", size);
+      ProgError( "out of memory (cannot allocate %zu bytes)", size);
    return ret;
 }
 
 /*- reallocate memory with error checking ----------------------------------*/
 
-void *ResizeMemory( void *old, size_t size)
+void* ResizeMemory(void *old, size_t size)
 {
    void *ret = realloc( old, size);
    if (!ret)
-      ProgError( "out of memory (cannot reallocate %u bytes)", size);
+      ProgError( "out of memory (cannot reallocate %zu bytes)", size);
    return ret;
 }
-
 
 #endif
 /*--------------------------------------------------------------------------*/

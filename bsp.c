@@ -42,8 +42,8 @@
 
 static FILE *outfile;
 static char *testwad;
-static char *outwad;
-char* unlinkwad;
+static const char *outwad;
+const char* unlinkwad;
 
 static struct directory *direc = NULL;
 
@@ -63,7 +63,7 @@ static FILE *infile;
 
 /* fcopy - function to completely copy one stream to another */
 
-void fcopy(FILE* in, FILE* out)
+static void fcopy(FILE* in, FILE* out)
 {
 	char buf[1024];
 	int rb;
@@ -74,7 +74,7 @@ void fcopy(FILE* in, FILE* out)
 
 /*--------------------------------------------------------------------------*/
 
-void progress()
+void progress(void)
 {
 	if((verbosity > 1) && !((++pcnt)&31))
 		Verbose("%c\b","/-\\|"[((pcnt)>>5)&3]);
@@ -113,12 +113,12 @@ static int OpenWadFile(char *filename)
  if (fread(&wad,1,sizeof(wad),infile)!=sizeof(wad) ||
      (wad.type[0]!='I' && wad.type[0]!='P') || wad.type[1]!='W'
      || wad.type[2]!='A' || wad.type[3]!='D')
-   ProgError("%s does not appear to be a wad file -- bad magic", filename);
+   ProgError("%s does not appear to be a WAD file -- bad magic", filename);
  /* Swap header into machine endianness */
- swaplong(&(wad.num_entries));
- swaplong(&(wad.dir_start));
+  swaplong(&wad.num_entries);
+  swaplong(&wad.dir_start);
 
- Verbose("Opened %cWAD file : %s. %lu dir entries at 0x%lX.\n",
+  Verbose("Opened %cWAD file: %s. %" PRIu32 " dir entries at 0x%08" PRIx32 ".\n",
 	wad.type[0],filename,wad.num_entries,wad.dir_start);
 
  direc = GetMemory(sizeof(struct directory) * wad.num_entries);
@@ -134,8 +134,8 @@ static int OpenWadFile(char *filename)
    register int islevel = 0;
 
    /* Swap dir entry to machine endianness */
-   swaplong((unsigned long *)&(dir->start));
-   swaplong((unsigned long *)&(dir->length));
+   swaplong(&(dir->start));
+   swaplong(&(dir->length));
 
    l->dir=dir;
    l->data=NULL;
@@ -163,6 +163,8 @@ static int OpenWadFile(char *filename)
 	 !strncmp(dir->name,"SSECTORS",8) ||
 	 !strncmp(dir->name,"NODES",8) ||
 	 !strncmp(dir->name,"BLOCKMAP",8) ||
+	 !strncmp(dir->name, "BEHAVIOR", 8) ||
+	 !strncmp(dir->name, "SCRIPTS", 8) ||
 	 (!noreject && !strncmp(dir->name,"REJECT",8)))
        continue;  /* Ignore these since we're rebuilding them anyway */
 
@@ -296,8 +298,9 @@ static void sortlump(struct lumplist **link)
  while (--i>=0);
 }
 
+void usage(const char* path) __attribute__((noreturn));
 
-void usage(const char* path)
+void usage(const char* path) 
 {
  printf("\nBSP v" VERSION "\n"
         "\nSee the file AUTHORS for a complete list of credits and contributors\n"
@@ -447,7 +450,7 @@ int main(int argc,char *argv[])
   Verbose("* Doom BSP node builder ver " VERSION "\n"
 	"Copyright (c)	1998 Colin Reed, Lee Killough\n"
 	"		2001 Simon Howard\n"
-	"		2000,2001,2002 Colin Phipps <cph@cph.demon.co.uk>\n\n");
+	"		2000,2001,2002,2006 Colin Phipps <cph@moria.org.uk>\n\n");
 
  levels = OpenWadFile(testwad);		/* Opens and reads directory*/
 
